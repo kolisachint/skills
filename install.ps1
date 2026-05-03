@@ -27,6 +27,7 @@ Commands:
 
   .\install.ps1 remove SKILL            Remove installed skill(s)
   .\install.ps1 remove SKILL1, SKILL2   Remove multiple skills
+  .\install.ps1 remove --all             Remove ALL installed skills
   .\install.ps1 installed               List installed skills
   .\install.ps1 update [SKILL]          Update installed skills
 
@@ -42,6 +43,7 @@ Examples:
 
   .\install.ps1 remove caveman                 # remove a skill
   .\install.ps1 remove caveman, grill-me       # remove multiple skills
+  .\install.ps1 remove --all                   # remove ALL skills
   .\install.ps1 installed                      # list installed skills
   .\install.ps1 update                         # update all skills
   .\install.ps1 update caveman                 # update a specific skill
@@ -452,20 +454,38 @@ function Cmd-Install {
 function Cmd-Remove {
   param(
     [string]$Target = "",
-    [string]$SkillFilter = ""
+    [string]$SkillFilter = "",
+    [switch]$All = $false
   )
 
   $SkillFilter = Normalize-SkillFilter -Input $SkillFilter
 
   if (-not $Target) { $Target = "." }
+  New-Item -ItemType Directory -Path $Target -Force | Out-Null
+  $Target = (Resolve-Path $Target).Path
+
+  # --all: nuke everything
+  if ($All) {
+    Write-Host "Removing ALL skills from $Target"
+    try {
+      $origDir = Get-Location
+      Set-Location $Target
+      Invoke-Expression "npx skills remove --all --yes"
+      Set-Location $origDir
+      Write-Host "✓ All skills removed"
+    }
+    catch {
+      Set-Location $origDir
+      Write-Warning "  ⚠ bulk removal failed (non-fatal): $_"
+    }
+    return
+  }
+
   if (-not $SkillFilter) {
-    Write-Error "remove requires a SKILL name"
+    Write-Error "remove requires a SKILL name (or --all)"
     Show-Usage
     exit 1
   }
-
-  New-Item -ItemType Directory -Path $Target -Force | Out-Null
-  $Target = (Resolve-Path $Target).Path
 
   Write-Host "Removing skills from $Target"
 
@@ -474,13 +494,15 @@ function Cmd-Remove {
 
   foreach ($skillName in $skills) {
     $comp = $catalog | Where-Object { $_.Name -eq $skillName } | Select-Object -First 1
-    if (-not $comp) {
-      Write-Warning "  ⚠ $skillName : not found in catalog, skipping"
-      continue
+
+    # Look up in catalog first
+    $removeCmd = $null
+    if ($comp -and $comp.RemoveCommand -and $comp.RemoveCommand -ne "-") {
+      $removeCmd = $comp.RemoveCommand
     }
 
-    $removeCmd = $comp.RemoveCommand
-    if (-not $removeCmd -or $removeCmd -eq "-") {
+    # Derive from install command
+    if (-not $removeCmd -and $comp) {
       $installCmd = $comp.InstallCommand
       if ($installCmd -match '^npx skills add') {
         $removeCmd = "npx skills remove $skillName --yes"
@@ -493,10 +515,12 @@ function Cmd-Remove {
       } elseif ($installCmd -match '^pi\s+install\s+(.+)$') {
         $pkg = $matches[1].Trim()
         $removeCmd = "pi remove $pkg"
-      } else {
-        Write-Warning "  ⚠ $skillName : no remove command and cannot derive one, skipping"
-        continue
       }
+    }
+
+    # Fallback: try npx skills remove for anything not in catalog
+    if (-not $removeCmd) {
+      $removeCmd = "npx skills remove $skillName --yes"
     }
 
     Write-Host "  → $skillName"
@@ -704,7 +728,8 @@ switch ($command) {
     $parsed = Parse-Args $remaining
     $target = $parsed.Flags["--target"]
     $skillFilter = if ($parsed.Flags["--skill"]) { $parsed.Flags["--skill"] } else { $parsed.Positional -join "," }
-    Cmd-Remove -Target $target -SkillFilter $skillFilter
+    $all = $parsed.Flags.ContainsKey("--all")
+    Cmd-Remove -Target $target -SkillFilter $skillFilter -All:$all
   }
   "installed" {
     $parsed = Parse-Args $remaining

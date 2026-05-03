@@ -46,6 +46,7 @@ Examples:
 
   ./install.sh remove caveman                 # remove a skill
   ./install.sh remove caveman grill-me        # remove multiple skills
+  ./install.sh remove --all                   # remove ALL installed skills
   ./install.sh installed                      # list installed skills
   ./install.sh update                         # update all skills
   ./install.sh update caveman                 # update a specific skill
@@ -475,11 +476,13 @@ cmd_install() {
 cmd_remove() {
   local target=""
   local skill_filter=""
+  local remove_all=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --target) target="$2"; shift 2 ;;
       --skill) skill_filter="$2"; shift 2 ;;
+      --all) remove_all=1; shift ;;
       -*)
         printf 'Error: unknown flag %s\n' "$1" >&2
         usage >&2
@@ -497,12 +500,6 @@ cmd_remove() {
 
   skill_filter=$(normalize_skill_filter "$skill_filter")
 
-  if [[ -z "$skill_filter" ]]; then
-    printf 'Error: remove requires a SKILL name\n' >&2
-    usage >&2
-    exit 1
-  fi
-
   if [[ -z "$target" ]]; then
     target="."
   fi
@@ -510,13 +507,35 @@ cmd_remove() {
   mkdir -p "$target"
   target="$(cd "$target" && pwd)"
 
+  # --all: nuke everything via npx skills
+  if [[ -n "$remove_all" ]]; then
+    printf 'Removing ALL skills from %s\n' "$target"
+    if (cd "$target" && npx skills remove --all --yes < /dev/null); then
+      printf '✓ All skills removed\n'
+    else
+      printf '  ⚠ bulk removal failed (non-fatal)\n' >&2
+    fi
+    return
+  fi
+
+  if [[ -z "$skill_filter" ]]; then
+    printf 'Error: remove requires a SKILL name (or --all)\n' >&2
+    usage >&2
+    exit 1
+  fi
+
   printf 'Removing skills from %s\n' "$target"
 
-  local name remove_cmd
-  while IFS=$'\t' read -r name remove_cmd; do
+  local IFS=','
+  for name in $skill_filter; do
     [[ -z "$name" ]] && continue
 
-    if [[ -z "$remove_cmd" || "$remove_cmd" == "-" ]]; then
+    # Look up in catalog first
+    local remove_cmd=""
+    remove_cmd=$(awk -F'\t' -v n="$name" '$1==n && NF>=9 && $9!="" && $9!="-" {print $9; exit}' "$CATALOG")
+
+    # Derive from install command if no explicit remove command
+    if [[ -z "$remove_cmd" ]]; then
       local install_cmd
       install_cmd=$(awk -F'\t' -v n="$name" '$1==n {print $7; exit}' "$CATALOG")
       if [[ "$install_cmd" == "npx skills add"* ]]; then
@@ -536,10 +555,12 @@ cmd_remove() {
         pkg="${pkg#"${pkg%%[![:space:]]*}"}"
         pkg="${pkg%"${pkg##*[![:space:]]}"}"
         remove_cmd="pi remove $pkg"
-      else
-        printf '  ⚠ %s: no remove command and cannot derive one\n' "$name" >&2
-        continue
       fi
+    fi
+
+    # Fallback: try npx skills remove for anything not in catalog
+    if [[ -z "$remove_cmd" ]]; then
+      remove_cmd="npx skills remove $name --yes"
     fi
 
     printf '  → %s\n' "$name"
@@ -550,19 +571,7 @@ cmd_remove() {
     else
       printf '  ⚠ %s removal failed (non-fatal)\n\n' "$name" >&2
     fi
-  done < <(awk -F'\t' -v skill="$skill_filter" '
-    BEGIN { split(skill, skill_arr, ",") }
-    /^#/ {next}
-    $1=="name" {next}
-    NF>=6 {
-      for (i in skill_arr) {
-        if ($1 == skill_arr[i]) {
-          print $1"\t"(NF>=9 ? $9 : "")
-          break
-        }
-      }
-    }
-  ' "$CATALOG")
+  done
 
   printf '✓ Removal complete\n'
 }
