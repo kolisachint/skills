@@ -916,6 +916,13 @@ switch ($command) {
         "--scope"        { $scope = $remaining[++$i] }
         "--from"         { $fromFile = $remaining[++$i] }
         "--tag"          { $tagFilter = $remaining[++$i] }
+        default {
+          if ($remaining[$i] -match '^--') {
+            Write-Error "Unknown flag: $($remaining[$i]). Did you mean --skill? Use --skill <name> to install a specific component."
+            Show-Usage
+            exit 1
+          }
+        }
       }
     }
 

@@ -770,7 +770,17 @@ cmd_install() {
       --scope) scope="$2"; shift 2 ;;
       --from) from_file="$2"; shift 2 ;;
       --tag) tag_filter="$2"; shift 2 ;;
-      *) shift ;;
+      -*)
+        printf 'Error: unknown flag %s\n' "$1" >&2
+        printf 'Did you mean --skill? Use --skill <name> to install a specific component.\n' >&2
+        usage >&2
+        exit 1
+        ;;
+      *)
+        printf 'Error: unexpected argument %s\n' "$1" >&2
+        usage >&2
+        exit 1
+        ;;
     esac
   done
 
