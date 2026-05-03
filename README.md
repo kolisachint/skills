@@ -25,37 +25,46 @@ curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh 
 curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --category workflow --agent-target codex
 ```
 
-### Option 2: Manual Install (clone first)
+### Option 2: Bootstrap from Favorites
+
+Curate your most-used components in `favorites.tsv`, then batch-install:
+
+```bash
+# Install everything tagged "daily-driver" or "critical"
+./scripts/skillkit.sh install --target ~/repo --from favorites.tsv --tag daily-driver,critical
+
+# Install all favorites (no tag filter)
+./scripts/skillkit.sh install --target ~/repo --from favorites.tsv
+
+# Or use Make
+make bootstrap-ai TARGET=~/repo
+```
+
+### Option 3: Manual Install (one at a time)
 
 ```bash
 # 1. Clone
 git clone https://github.com/kolisachint/skills.git
 cd skills
 
-# 2. Install everything at repo level (default)
-./install.sh --target ~/repo
+# 2. Install specific component(s) by name (deliberate, one at a time)
+./scripts/skillkit.sh install --target ~/repo --skill control-first
+./scripts/skillkit.sh install --target ~/repo --skill control-first,local-inference
 
-# 3. Internal skills only (skip external entirely)
-./install.sh --target ~/repo --source internal
-
-# 4. Or install with filters
-./install.sh --target ~/repo --category workflow
-./install.sh --target ~/repo --platform pi
-./install.sh --target ~/repo --agent-target codex
-
-# 5. Install specific skill(s) by name
-./install.sh --target ~/repo --skill control-first
-./install.sh --target ~/repo --skill control-first,local-inference
-
-# 6. Or run scripts directly
+# 3. Or install with filters
 ./scripts/skillkit.sh install --target ~/repo --category workflow
+./scripts/skillkit.sh install --target ~/repo --platform pi
+./scripts/skillkit.sh install --target ~/repo --agent-target codex
+
+# 4. Install everything
+./scripts/skillkit.sh install --target ~/repo
 ```
 
 **Windows manual:**
 ```powershell
 git clone https://github.com/kolisachint/skills.git
 cd skills
-.\install.ps1 --target C:\code\repo
+.\scripts\skillkit.ps1 install --target C:\code\repo --skill control-first
 ```
 
 ---
@@ -141,6 +150,11 @@ Every installation can be filtered across six dimensions:
 5. **Skill** — specific component name(s), comma-separated for multiple
 6. **Scope** — `local` (default) or `all` to include external components
 
+Plus two favorites dimensions:
+
+7. **From** — a `favorites.tsv` file (`--from favorites.tsv`)
+8. **Tag** — filter favorites by tag (`--tag daily-driver,critical`)
+
 ### Repo-Local by Default
 
 This skillkit is **repo-local by default**. It installs everything that can
@@ -187,6 +201,23 @@ Existing instruction files are preserved. The installer updates only managed
 blocks marked with `BEGIN AI SKILLKIT` and `END AI SKILLKIT`.
 
 ---
+
+## Curating Favorites
+
+Use `favorites.tsv` to maintain your personal shortlist:
+
+```tsv
+name	category	platforms	tags	source
+control-first	workflow	all	daily-driver	internal
+local-inference	skill	all	daily-driver	internal
+```
+
+**Tags:**
+- `daily-driver` — install on every project
+- `occasional` — rare but important
+- `critical` — required for specific project types (e.g., `frontend-critical`)
+
+**Guideline:** Scrutinize before adding. Models evolve fast — only keep components that provide durable value beyond what base models can do.
 
 ## Component Catalog
 

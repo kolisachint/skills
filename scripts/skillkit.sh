@@ -29,6 +29,8 @@ Commands:
   skillkit.sh install --target PATH --skill control-first   Install a specific component by name
   skillkit.sh install --target PATH --skill skill1,skill2   Install multiple specific components
   skillkit.sh install --target PATH --scope all             Include external components (default: repo-local)
+  skillkit.sh install --target PATH --from FILE             Install from a favorites file
+  skillkit.sh install --target PATH --from FILE --tag TAG   Install favorites matching tag(s)
   skillkit.sh export --output PATH          Export portable bundle
 
 Dimensions:
@@ -47,6 +49,8 @@ Examples:
   ./scripts/skillkit.sh install --target ~/repo --skill caveman,grill-me
   ./scripts/skillkit.sh install --target ~/repo
   ./scripts/skillkit.sh install --target ~/repo --scope all
+  ./scripts/skillkit.sh install --target ~/repo --from favorites.tsv
+  ./scripts/skillkit.sh install --target ~/repo --from favorites.tsv --tag daily-driver
   ./scripts/skillkit.sh search review
   ./scripts/skillkit.sh top 5
 EOF
@@ -453,24 +457,39 @@ install_external() {
   local name="$2"
   local description="$3"
   local install_cmd="$4"
+  local active_platforms="${5:-}"
 
   if [[ -z "$install_cmd" || "$install_cmd" == "-" ]]; then
     printf '  ⚠ %s: no install command\n' "$name" >&2
     return 0
   fi
 
+  # Constrain external tools to requested platforms by hiding others
+  if [[ -n "$active_platforms" ]]; then
+    _hide_nonactive_platform_dirs "$target" "$active_platforms"
+  fi
+
   printf '  → %s (%s)\n' "$name" "$description"
   printf '    Running: %s\n' "$install_cmd"
   # Run from target directory so tools like `npx skills add` create
   # project-local .agents/skills/ and platform symlinks in the right place.
+  local exit_code=0
   if (cd "$target" && eval "$install_cmd"); then
     printf '  ✓ %s installed\n' "$name"
     # Post-process: if npm package installed skills into node_modules, copy them
     # to .agents/skills/ so they're discoverable without relying on home-dir symlinks
     _copy_npm_skills "$target"
   else
+    exit_code=$?
     printf '  ⚠ %s installation failed (non-fatal)\n' "$name" >&2
   fi
+
+  # Always restore hidden directories
+  if [[ -n "$active_platforms" ]]; then
+    _restore_hidden_platform_dirs "$target"
+  fi
+
+  return $exit_code
 }
 
 # Copy skills from node_modules/<pkg>/skills/ to .agents/skills/
@@ -495,6 +514,60 @@ _copy_npm_skills() {
       fi
     done
   done
+}
+
+# Temporarily hide platform directories that are NOT in active_platforms
+# so external tools only install to the requested platforms.
+_hide_nonactive_platform_dirs() {
+  local target="$1"
+  local active_platforms="$2"
+  local hidden_marker="$target/.ai/skillkit/.hidden_platforms"
+
+  # Clean up any stale markers first
+  rm -f "$hidden_marker"
+  mkdir -p "$(dirname "$hidden_marker")"
+
+  local all_platforms="opencode pi copilot codex claude"
+  local plat
+  for plat in $all_platforms; do
+    if [[ " $active_platforms " != *" $plat "* ]]; then
+      local top_dir=""
+      case "$plat" in
+        pi)       top_dir="$target/.pi" ;;
+        opencode) top_dir="$target/.opencode" ;;
+        copilot)  top_dir="$target/.github" ;;
+        codex)    top_dir="$target/.codex" ;;
+        claude)   top_dir="$target/.claude" ;;
+      esac
+
+      if [[ -n "$top_dir" && -d "$top_dir" ]]; then
+        mv "$top_dir" "$top_dir.hidden"
+        printf '%s\t%s\n' "$plat" "$top_dir" >> "$hidden_marker"
+      fi
+    fi
+  done
+}
+
+# Restore platform directories that were hidden
+_restore_hidden_platform_dirs() {
+  local target="$1"
+  local hidden_marker="$target/.ai/skillkit/.hidden_platforms"
+
+  [[ -f "$hidden_marker" ]] || return 0
+
+  while IFS=$'\t' read -r plat top_dir; do
+    [[ -z "$plat" ]] && continue
+    local hidden_dir="$top_dir.hidden"
+    if [[ -d "$hidden_dir" ]]; then
+      # If external tool created a new directory while this was hidden, remove it
+      if [[ -d "$top_dir" ]]; then
+        rm -rf "$top_dir"
+      fi
+      mv "$hidden_dir" "$top_dir"
+    fi
+  done < "$hidden_marker"
+
+  rm -f "$hidden_marker"
 }
 
 # ---------------------------------------------------------------------------
@@ -646,6 +719,32 @@ write_platform_index() {
 }
 
 # ---------------------------------------------------------------------------
+# Favorites resolution
+# ---------------------------------------------------------------------------
+
+resolve_favorites_names() {
+  local file="$1"
+  local tag_filter="${2:-}"
+
+  awk -F'\t' -v tags="$tag_filter" '
+    BEGIN { split(tags, tag_arr, ",") }
+    /^#/ {next}
+    $1=="name" {next}
+    NF>=5 {
+      match_tag = 0
+      if (tags=="") {
+        match_tag = 1
+      } else {
+        for (i in tag_arr) {
+          if ($4 ~ ("(^|,)" tag_arr[i] "($|,)")) { match_tag = 1; break }
+        }
+      }
+      if (match_tag) { print $1 }
+    }
+  ' "$file"
+}
+
+# ---------------------------------------------------------------------------
 # Main install command
 # ---------------------------------------------------------------------------
 
@@ -657,6 +756,8 @@ cmd_install() {
   local agent_target_filter=""
   local skill_filter=""
   local scope=""
+  local from_file=""
+  local tag_filter=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -667,6 +768,8 @@ cmd_install() {
       --agent-target) agent_target_filter="$2"; shift 2 ;;
       --skill) skill_filter="$2"; shift 2 ;;
       --scope) scope="$2"; shift 2 ;;
+      --from) from_file="$2"; shift 2 ;;
+      --tag) tag_filter="$2"; shift 2 ;;
       *) shift ;;
     esac
   done
@@ -675,10 +778,49 @@ cmd_install() {
   # External skills with local-safe commands (e.g. npx skills add) are included.
   # External skills with global-only commands (e.g. npm -g, curl | sh) are skipped.
 
+  if [[ -n "$tag_filter" && -z "$from_file" ]]; then
+    printf 'Error: --tag requires --from <favorites-file>\n' >&2
+    usage >&2
+    exit 1
+  fi
+
   if [[ -z "$target" ]]; then
     printf 'Error: --target is required\n' >&2
     usage >&2
     exit 1
+  fi
+
+  # Resolve favorites to catalog entries
+  if [[ -n "$from_file" ]]; then
+    if [[ ! -f "$from_file" ]]; then
+      printf 'Error: favorites file not found: %s\n' "$from_file" >&2
+      exit 1
+    fi
+
+    local fav_names
+    fav_names=$(resolve_favorites_names "$from_file" "$tag_filter")
+
+    if [[ -z "$fav_names" ]]; then
+      printf 'No favorites match the tag filter: %s\n' "${tag_filter:-(none)}"
+      exit 0
+    fi
+
+    local valid_names=""
+    while IFS= read -r name; do
+      [[ -z "$name" ]] && continue
+      if awk -F'\t' -v n="$name" 'BEGIN{found=0} !/^#/ && $1=="name"{next} $1==n{found=1; exit} END{exit (found ? 0 : 1)}' "$CATALOG"; then
+        valid_names="${valid_names:+$valid_names,}$name"
+      else
+        printf '  ⚠ %s: not found in catalog, skipping\n' "$name" >&2
+      fi
+    done < <(printf '%s\n' "$fav_names")
+
+    if [[ -z "$valid_names" ]]; then
+      printf 'No valid favorites found in catalog.\n'
+      exit 0
+    fi
+
+    skill_filter="$valid_names"
   fi
 
   mkdir -p "$target"
@@ -735,7 +877,7 @@ cmd_install() {
     local name description install_cmd
     while IFS=$'\t' read -r name _ _ _ _ description install_cmd _; do
       [[ -z "$name" ]] && continue
-      install_external "$target" "$name" "$description" "$install_cmd"
+      install_external "$target" "$name" "$description" "$install_cmd" "$active_platforms"
     done < <(printf '%s\n' "$components" | awk -F'\t' '$3=="external"')
   fi
 

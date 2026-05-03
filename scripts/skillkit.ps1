@@ -24,6 +24,8 @@ Commands:
   .\scripts\skillkit.ps1 install --target PATH --skill control-first   Install a specific component by name
   .\scripts\skillkit.ps1 install --target PATH --skill skill1,skill2   Install multiple specific components
   .\scripts\skillkit.ps1 install --target PATH --scope all             Include external components (default: repo-local)
+  .\scripts\skillkit.ps1 install --target PATH --from FILE             Install from a favorites file
+  .\scripts\skillkit.ps1 install --target PATH --from FILE --tag TAG   Install favorites matching tag(s)
   .\scripts\skillkit.ps1 export --output PATH          Export portable bundle
 
 Dimensions:
@@ -41,6 +43,8 @@ Examples:
   .\scripts\skillkit.ps1 install --target C:\code\repo --skill caveman,grill-me
   .\scripts\skillkit.ps1 install --target C:\code\repo
   .\scripts\skillkit.ps1 install --target C:\code\repo --scope all
+  .\scripts\skillkit.ps1 install --target C:\code\repo --from favorites.tsv
+  .\scripts\skillkit.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver
   .\scripts\skillkit.ps1 search review
   .\scripts\skillkit.ps1 top 5
 "@
@@ -401,10 +405,64 @@ function Install-Internal {
   Write-Host "  ✓ $($Component.Name) - $($Component.Description)"
 }
 
+function Hide-NonActivePlatformDirs {
+  param([string]$Target, [string[]]$ActivePlatforms)
+
+  $hiddenMarker = Join-Path $Target ".ai/skillkit/.hidden_platforms"
+  $markerDir = Split-Path -Parent $hiddenMarker
+  if (-not (Test-Path $markerDir)) { New-Item -ItemType Directory -Path $markerDir -Force | Out-Null }
+  if (Test-Path $hiddenMarker) { Remove-Item $hiddenMarker -Force }
+
+  $allPlatforms = @("opencode", "pi", "copilot", "codex", "claude")
+  foreach ($plat in $allPlatforms) {
+    if ($ActivePlatforms -contains $plat) { continue }
+
+    $topDir = switch ($plat) {
+      "pi"       { Join-Path $Target ".pi" }
+      "opencode" { Join-Path $Target ".opencode" }
+      "copilot"  { Join-Path $Target ".github" }
+      "codex"    { Join-Path $Target ".codex" }
+      "claude"   { Join-Path $Target ".claude" }
+      default    { $null }
+    }
+
+    if ($topDir -and (Test-Path $topDir)) {
+      $hiddenDir = "$topDir.hidden"
+      Move-Item -Path $topDir -Destination $hiddenDir -Force
+      "$plat`t$topDir" | Out-File -FilePath $hiddenMarker -Append -Encoding utf8
+    }
+  }
+}
+
+function Restore-HiddenPlatformDirs {
+  param([string]$Target)
+
+  $hiddenMarker = Join-Path $Target ".ai/skillkit/.hidden_platforms"
+  if (-not (Test-Path $hiddenMarker)) { return }
+
+  Get-Content -Path $hiddenMarker | ForEach-Object {
+    $parts = $_ -split "`t"
+    if ($parts.Length -ge 2) {
+      $topDir = $parts[1]
+      $hiddenDir = "$topDir.hidden"
+      if (Test-Path $hiddenDir) {
+        # If external tool created a new directory while this was hidden, remove it
+        if (Test-Path $topDir) {
+          Remove-Item -Path $topDir -Recurse -Force
+        }
+        Move-Item -Path $hiddenDir -Destination $topDir -Force
+      }
+    }
+  }
+
+  Remove-Item $hiddenMarker -Force -ErrorAction SilentlyContinue
+}
+
 function Install-External {
   param(
     [string]$Target,
-    [PSCustomObject]$Component
+    [PSCustomObject]$Component,
+    [string[]]$ActivePlatforms = @()
   )
 
   if (-not $Component.InstallCommand -or $Component.InstallCommand -eq "-") {
@@ -412,9 +470,14 @@ function Install-External {
     return
   }
 
-  Write-Host "  → $($Component.Name) ($($Component.Description))"
-  Write-Host "    Running: $($Component.InstallCommand)"
+  $constrain = ($ActivePlatforms.Count -gt 0)
+  if ($constrain) {
+    Hide-NonActivePlatformDirs -Target $Target -ActivePlatforms $ActivePlatforms
+  }
+
   try {
+    Write-Host "  → $($Component.Name) ($($Component.Description))"
+    Write-Host "    Running: $($Component.InstallCommand)"
     # Run from target directory so tools create project-local files
     $origDir = Get-Location
     Set-Location $Target
@@ -427,6 +490,11 @@ function Install-External {
   catch {
     Set-Location $origDir
     Write-Warning "  ⚠ $($Component.Name) installation failed (non-fatal): $_"
+  }
+  finally {
+    if ($constrain) {
+      Restore-HiddenPlatformDirs -Target $Target
+    }
   }
 }
 
@@ -594,6 +662,32 @@ function Write-PlatformIndex {
 }
 
 # ---------------------------------------------------------------------------
+# Favorites resolution
+# ---------------------------------------------------------------------------
+
+function Read-Favorites {
+  param([string]$File, [string]$TagFilter = "")
+
+  if (-not (Test-Path $File)) {
+    Write-Error "Favorites file not found: $File"
+    return @()
+  }
+
+  $reqTags = if ($TagFilter) { $TagFilter -split "," | ForEach-Object { $_.Trim() } } else { @() }
+
+  Get-Content -Path $File | Where-Object { $_ -notmatch '^#' -and $_ -notmatch '^name\t' } | ForEach-Object {
+    $fields = $_ -split "`t"
+    if ($fields.Length -lt 5) { return }
+    $favTags = $fields[3] -split "," | ForEach-Object { $_.Trim() }
+    $match = $reqTags.Count -eq 0
+    foreach ($rt in $reqTags) {
+      if ($favTags -contains $rt) { $match = $true; break }
+    }
+    if ($match) { $fields[0] }
+  }
+}
+
+# ---------------------------------------------------------------------------
 # Main install command
 # ---------------------------------------------------------------------------
 
@@ -605,17 +699,51 @@ function Cmd-Install {
     [string]$PlatformFilter = "",
     [string]$AgentTargetFilter = "",
     [string]$SkillFilter = "",
-    [string]$Scope = ""
+    [string]$Scope = "",
+    [string]$FromFile = "",
+    [string]$TagFilter = ""
   )
 
   # scope="local" means: install everything possible at repo-level.
   # External skills with local-safe commands (e.g. npx skills add) are included.
   # External skills with global-only commands (e.g. npm -g, curl | sh) are skipped.
 
+  if ($TagFilter -and -not $FromFile) {
+    Write-Error "--tag requires --from <favorites-file>"
+    Show-Usage
+    exit 1
+  }
+
   if (-not $Target) {
     Write-Error "--target is required"
     Show-Usage
     exit 1
+  }
+
+  # Resolve favorites to catalog entries
+  if ($FromFile) {
+    $favNames = Read-Favorites -File $FromFile -TagFilter $TagFilter
+    if ($favNames.Count -eq 0) {
+      Write-Host "No favorites match the tag filter: $($TagFilter -or '(none)')"
+      return
+    }
+
+    $catalogNames = Read-Catalog | Select-Object -ExpandProperty Name
+    $validNames = @()
+    foreach ($name in $favNames) {
+      if ($catalogNames -contains $name) {
+        $validNames += $name
+      } else {
+        Write-Warning "$name : not found in catalog, skipping"
+      }
+    }
+
+    if ($validNames.Count -eq 0) {
+      Write-Host "No valid favorites found in catalog."
+      return
+    }
+
+    $SkillFilter = $validNames -join ","
   }
 
   New-Item -ItemType Directory -Path $Target -Force | Out-Null
@@ -662,7 +790,7 @@ function Cmd-Install {
     Write-Host ""
     Write-Host "→ Installing external components..."
     foreach ($comp in ($components | Where-Object { $_.Source -eq "external" } | Sort-Object Name)) {
-      Install-External -Target $Target -Component $comp
+      Install-External -Target $Target -Component $comp -ActivePlatforms $activePlatforms
     }
   }
 
@@ -774,6 +902,8 @@ switch ($command) {
     $agentTargetFilter = ""
     $skillFilter = ""
     $scope = ""
+    $fromFile = ""
+    $tagFilter = ""
 
     for ($i = 0; $i -lt $remaining.Length; $i++) {
       switch ($remaining[$i]) {
@@ -784,10 +914,12 @@ switch ($command) {
         "--agent-target" { $agentTargetFilter = $remaining[++$i] }
         "--skill"        { $skillFilter = $remaining[++$i] }
         "--scope"        { $scope = $remaining[++$i] }
+        "--from"         { $fromFile = $remaining[++$i] }
+        "--tag"          { $tagFilter = $remaining[++$i] }
       }
     }
 
-    Cmd-Install -Target $target -SourceFilter $sourceFilter -CategoryFilter $categoryFilter -PlatformFilter $platformFilter -AgentTargetFilter $agentTargetFilter -SkillFilter $skillFilter -Scope $scope
+    Cmd-Install -Target $target -SourceFilter $sourceFilter -CategoryFilter $categoryFilter -PlatformFilter $platformFilter -AgentTargetFilter $agentTargetFilter -SkillFilter $skillFilter -Scope $scope -FromFile $fromFile -TagFilter $tagFilter
   }
   "export" {
     $output = ""
