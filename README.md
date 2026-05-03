@@ -9,21 +9,21 @@ Curated components for coding agents, organized by how you use them, where you u
 git clone https://github.com/kolisachint/skills.git && cd skills
 
 # 2. Install a specific skill
-./skillkit.sh install --target ~/repo --skill caveman
+./install.sh install --target ~/repo --skill caveman
 
 # 3. Or install by category
-./skillkit.sh install --target ~/repo --category workflow
+./install.sh install --target ~/repo --category workflow
 
 # 4. Or install everything in the catalog
-./skillkit.sh install --target ~/repo
+./install.sh install --target ~/repo
 ```
 
 **Windows:**
 ```powershell
 git clone https://github.com/kolisachint/skills.git; cd skills
-.\skillkit.ps1 install --target C:\code\repo --skill caveman
-.\skillkit.ps1 install --target C:\code\repo --category workflow
-.\skillkit.ps1 install --target C:\code\repo
+.\install.ps1 install --target C:\code\repo --skill caveman
+.\install.ps1 install --target C:\code\repo --category workflow
+.\install.ps1 install --target C:\code\repo
 ```
 
 ### Bootstrap from Favorites
@@ -32,13 +32,13 @@ Curate your most-used components in `favorites.tsv`, then batch-install:
 
 ```bash
 # macOS / Linux — install everything tagged "daily-driver" or "critical"
-./skillkit.sh install --target ~/repo --from favorites.tsv --tag daily-driver,critical
+./install.sh install --target ~/repo --from favorites.tsv --tag daily-driver,critical
 
 # macOS / Linux — via Make
 make bootstrap-ai TARGET=~/repo
 
 # Windows — install everything tagged "daily-driver" or "critical"
-.\skillkit.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver,critical
+.\install.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver,critical
 ```
 
 ---
@@ -47,24 +47,24 @@ make bootstrap-ai TARGET=~/repo
 
 ```bash
 # macOS / Linux
-./skillkit.sh list
-./skillkit.sh list-categories
-./skillkit.sh list-platforms
-./skillkit.sh search review
-./skillkit.sh search codex
-./skillkit.sh search debug
-./skillkit.sh top        # default top 10
-./skillkit.sh top 5      # top 5 only
+./install.sh list
+./install.sh list-categories
+./install.sh list-platforms
+./install.sh search review
+./install.sh search codex
+./install.sh search debug
+./install.sh top        # default top 10
+./install.sh top 5      # top 5 only
 
 # Windows
-.\skillkit.ps1 list
-.\skillkit.ps1 list-categories
-.\skillkit.ps1 list-platforms
-.\skillkit.ps1 search review
-.\skillkit.ps1 search codex
-.\skillkit.ps1 search debug
-.\skillkit.ps1 top
-.\skillkit.ps1 top 5
+.\install.ps1 list
+.\install.ps1 list-categories
+.\install.ps1 list-platforms
+.\install.ps1 search review
+.\install.ps1 search codex
+.\install.ps1 search debug
+.\install.ps1 top
+.\install.ps1 top 5
 ```
 
 ## Curated Components
@@ -200,5 +200,5 @@ Core beliefs:
 | `docs/REFERENCES.md` | Platform documentation links |
 | `MIGRATION.md` | Upgrade guide from previous versions |
 | `favorites.tsv` | Personal shortlist for batch install |
-| `skillkit.sh` | Unified CLI for macOS/Linux |
-| `skillkit.ps1` | Unified CLI for Windows |
+| `install.sh` | Unified CLI for macOS/Linux |
+| `install.ps1` | Unified CLI for Windows |

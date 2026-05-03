@@ -8,27 +8,27 @@ function Show-Usage {
 Portable AI Skillkit — Curated catalog thin wrapper around npx skills
 
 Commands:
-  .\skillkit.ps1 list                          Show all components grouped by category
-  .\skillkit.ps1 list-categories               Show available categories
-  .\skillkit.ps1 list-platforms                Show available platforms
-  .\skillkit.ps1 search KEYWORD                Search components by name/description
-  .\skillkit.ps1 top [N]                       Show top-N starred components
-  .\skillkit.ps1 install --target PATH         Install all catalog components
-  .\skillkit.ps1 install --target PATH --skill NAME          Install specific component(s)
-  .\skillkit.ps1 install --target PATH --category CATEGORY   Install by category
-  .\skillkit.ps1 install --target PATH --platform PLATFORM   Install by platform
-  .\skillkit.ps1 install --target PATH --agent-target AGENT  Install by agent target
-  .\skillkit.ps1 install --target PATH --from FILE           Install from favorites file
-  .\skillkit.ps1 install --target PATH --from FILE --tag TAG Install favorites matching tags
-  .\skillkit.ps1 export --output PATH          Export portable bundle
+  .\install.ps1 list                          Show all components grouped by category
+  .\install.ps1 list-categories               Show available categories
+  .\install.ps1 list-platforms                Show available platforms
+  .\install.ps1 search KEYWORD                Search components by name/description
+  .\install.ps1 top [N]                       Show top-N starred components
+  .\install.ps1 install --target PATH         Install all catalog components
+  .\install.ps1 install --target PATH --skill NAME          Install specific component(s)
+  .\install.ps1 install --target PATH --category CATEGORY   Install by category
+  .\install.ps1 install --target PATH --platform PLATFORM   Install by platform
+  .\install.ps1 install --target PATH --agent-target AGENT  Install by agent target
+  .\install.ps1 install --target PATH --from FILE           Install from favorites file
+  .\install.ps1 install --target PATH --from FILE --tag TAG Install favorites matching tags
+  .\install.ps1 export --output PATH          Export portable bundle
 
 Examples:
-  .\skillkit.ps1 list
-  .\skillkit.ps1 search review
-  .\skillkit.ps1 install --target C:\code\repo --skill caveman
-  .\skillkit.ps1 install --target C:\code\repo --skill caveman,grill-me
-  .\skillkit.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver
-  .\skillkit.ps1 install --target C:\code\repo --category workflow
+  .\install.ps1 list
+  .\install.ps1 search review
+  .\install.ps1 install --target C:\code\repo --skill caveman
+  .\install.ps1 install --target C:\code\repo --skill caveman,grill-me
+  .\install.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver
+  .\install.ps1 install --target C:\code\repo --category workflow
 "@
 }
 
@@ -110,9 +110,9 @@ function Cmd-List {
     Write-Host ""
   }
 
-  Write-Host "Install one:     .\skillkit.ps1 install --target C:\code\repo --skill <name>"
-  Write-Host "Install by cat:  .\skillkit.ps1 install --target C:\code\repo --category <cat>"
-  Write-Host "Install all:     .\skillkit.ps1 install --target C:\code\repo"
+  Write-Host "Install one:     .\install.ps1 install --target C:\code\repo --skill <name>"
+  Write-Host "Install by cat:  .\install.ps1 install --target C:\code\repo --category <cat>"
+  Write-Host "Install all:     .\install.ps1 install --target C:\code\repo"
   Write-Host ""
 }
 
@@ -188,8 +188,8 @@ function Cmd-Search {
     Write-Host 'No components match "$Query".'
     Write-Host ""
     Write-Host "Try:"
-    Write-Host "  .\skillkit.ps1 list    to see all components"
-    Write-Host "  .\skillkit.ps1 top 5   to see top starred skills"
+    Write-Host "  .\install.ps1 list    to see all components"
+    Write-Host "  .\install.ps1 top 5   to see top starred skills"
     Write-Host ""
     return
   }
@@ -217,7 +217,7 @@ function Cmd-Search {
   }
 
   Write-Host ""
-  Write-Host "Install: .\skillkit.ps1 install --target C:\code\repo --skill <name>"
+  Write-Host "Install: .\install.ps1 install --target C:\code\repo --skill <name>"
   Write-Host ""
 }
 
@@ -415,7 +415,7 @@ function Cmd-Export {
 
   Copy-Item -Path $Catalog -Destination (Join-Path $Output "catalog.tsv") -Force
   Copy-Item -Path (Join-Path $Root "skillkit.sh") -Destination $Output -Force -ErrorAction SilentlyContinue
-  Copy-Item -Path (Join-Path $Root "skillkit.ps1") -Destination $Output -Force -ErrorAction SilentlyContinue
+  Copy-Item -Path (Join-Path $Root "install.ps1") -Destination $Output -Force -ErrorAction SilentlyContinue
 
   foreach ($doc in @("README.md", "AGENTS.md", "PHILOSOPHY.md", "MIGRATION.md")) {
     $docPath = Join-Path $Root $doc

@@ -12,27 +12,27 @@ usage() {
 Portable AI Skillkit — Curated catalog thin wrapper around npx skills
 
 Commands:
-  skillkit.sh list                          Show all components grouped by category
-  skillkit.sh list-categories               Show available categories
-  skillkit.sh list-platforms                Show available platforms
-  skillkit.sh search KEYWORD                Search components by name/description
-  skillkit.sh top [N]                       Show top-N starred components
-  skillkit.sh install --target PATH         Install all catalog components
-  skillkit.sh install --target PATH --skill NAME          Install specific component(s)
-  skillkit.sh install --target PATH --category CATEGORY   Install by category
-  skillkit.sh install --target PATH --platform PLATFORM   Install by platform
-  skillkit.sh install --target PATH --agent-target AGENT  Install by agent target
-  skillkit.sh install --target PATH --from FILE           Install from favorites file
-  skillkit.sh install --target PATH --from FILE --tag TAG Install favorites matching tags
-  skillkit.sh export --output PATH          Export portable bundle
+  install.sh list                          Show all components grouped by category
+  install.sh list-categories               Show available categories
+  install.sh list-platforms                Show available platforms
+  install.sh search KEYWORD                Search components by name/description
+  install.sh top [N]                       Show top-N starred components
+  install.sh install --target PATH         Install all catalog components
+  install.sh install --target PATH --skill NAME          Install specific component(s)
+  install.sh install --target PATH --category CATEGORY   Install by category
+  install.sh install --target PATH --platform PLATFORM   Install by platform
+  install.sh install --target PATH --agent-target AGENT  Install by agent target
+  install.sh install --target PATH --from FILE           Install from favorites file
+  install.sh install --target PATH --from FILE --tag TAG Install favorites matching tags
+  install.sh export --output PATH          Export portable bundle
 
 Examples:
-  ./scripts/skillkit.sh list
-  ./scripts/skillkit.sh search review
-  ./scripts/skillkit.sh install --target ~/repo --skill caveman
-  ./scripts/skillkit.sh install --target ~/repo --skill caveman,grill-me
-  ./scripts/skillkit.sh install --target ~/repo --from favorites.tsv --tag daily-driver
-  ./scripts/skillkit.sh install --target ~/repo --category workflow
+  ./scripts/install.sh list
+  ./scripts/install.sh search review
+  ./scripts/install.sh install --target ~/repo --skill caveman
+  ./scripts/install.sh install --target ~/repo --skill caveman,grill-me
+  ./scripts/install.sh install --target ~/repo --from favorites.tsv --tag daily-driver
+  ./scripts/install.sh install --target ~/repo --category workflow
 EOF
 }
 
@@ -117,9 +117,9 @@ cmd_list() {
     printf '\n'
   done < <(catalog_get_unique 2)
 
-  printf 'Install one:     ./scripts/skillkit.sh install --target ~/repo --skill <name>\n'
-  printf 'Install by cat:  ./scripts/skillkit.sh install --target ~/repo --category <cat>\n'
-  printf 'Install all:     ./scripts/skillkit.sh install --target ~/repo\n\n'
+  printf 'Install one:     ./scripts/install.sh install --target ~/repo --skill <name>\n'
+  printf 'Install by cat:  ./scripts/install.sh install --target ~/repo --category <cat>\n'
+  printf 'Install all:     ./scripts/install.sh install --target ~/repo\n\n'
 }
 
 cmd_list_categories() {
@@ -193,8 +193,8 @@ cmd_search() {
   if [[ -z "$results" ]]; then
     printf 'No components match "%s".\n\n' "$query"
     printf 'Try:\n'
-    printf '  ./scripts/skillkit.sh list    to see all components\n'
-    printf '  ./scripts/skillkit.sh top 5   to see top starred skills\n\n'
+    printf '  ./scripts/install.sh list    to see all components\n'
+    printf '  ./scripts/install.sh top 5   to see top starred skills\n\n'
     return 0
   fi
 
@@ -223,7 +223,7 @@ cmd_search() {
     }
   '
 
-  printf '\nInstall: ./scripts/skillkit.sh install --target ~/repo --skill <name>\n\n'
+  printf '\nInstall: ./scripts/install.sh install --target ~/repo --skill <name>\n\n'
 }
 
 cmd_top() {
@@ -455,7 +455,7 @@ cmd_export() {
   printf 'Exporting Portable AI Skillkit to %s\n' "$output"
 
   cp "$CATALOG" "$output/catalog.tsv"
-  cp "$ROOT/scripts/skillkit.sh" "$output/"
+  cp "$ROOT/scripts/install.sh" "$output/"
   cp "$ROOT/scripts/skillkit.ps1" "$output/"
 
   for doc in README.md AGENTS.md PHILOSOPHY.md MIGRATION.md; do

@@ -10,7 +10,7 @@ When editing it:
 - Use frontmatter to declare platform compatibility and agent targeting.
 - Prefer shell scripts with no third-party dependencies for portability.
 - Test installer changes against a temporary directory before reporting success.
-- Maintain parity between `skillkit.sh` and `skillkit.ps1`.
+- Maintain parity between `install.sh` and `install.ps1`.
 
 ## Component Dimensions
 
@@ -23,7 +23,7 @@ Every component in `catalog.tsv` is classified across four dimensions:
 
 ## How It Works
 
-`skillkit.sh install` reads `catalog.tsv`, filters by your criteria, and runs
+`install.sh install` reads `catalog.tsv`, filters by your criteria, and runs
 each component's install command in the target directory. `npx skills` handles
 the rest — creating `.agents/skills/` and symlinking to platform directories.
 
