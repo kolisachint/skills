@@ -32,11 +32,11 @@ curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh 
 git clone https://github.com/kolisachint/skills.git
 cd skills
 
-# 2. Install repo-local skills (default — no external deps)
+# 2. Install everything at repo level (default)
 ./install.sh --target ~/repo
 
-# 3. Include external skills too (opt-in)
-./install.sh --target ~/repo --scope all
+# 3. Internal skills only (skip external entirely)
+./install.sh --target ~/repo --source internal
 
 # 4. Or install with filters
 ./install.sh --target ~/repo --category workflow
@@ -143,12 +143,18 @@ Every installation can be filtered across six dimensions:
 
 ### Repo-Local by Default
 
-This skillkit is **repo-local by default**. Only internal components are
-installed unless you explicitly opt in with `--scope all`.
+This skillkit is **repo-local by default**. It installs everything that can
+live inside your target directory — both internal skills and external skills
+that support local installation.
 
-Everything it installs lives inside your target directory. If you delete the
-repo, the skills are gone. No files are written to `~/.claude`, `~/.config`,
-`~/.agents`, or any other home directory path.
+External skills that require global or user-level installation (e.g.
+`npm install -g`, `curl | sh` that writes to home directories) are
+automatically skipped with a warning. Only repo-safe external skills
+(e.g. `npx skills add` which creates `.agents/skills/` locally) are included.
+
+Everything lives inside your target directory. If you delete the repo, the
+skills are gone. No files are written to `~/.claude`, `~/.config`, or other
+home directory paths.
 
 When platform directories already exist in the target, the installer
 auto-detects them. Use `--platform` to force installation to a specific

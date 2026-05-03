@@ -28,7 +28,7 @@ Commands:
   skillkit.sh install --target PATH --agent-target codex    Install only Codex-targeted agents/workflows
   skillkit.sh install --target PATH --skill control-first   Install a specific component by name
   skillkit.sh install --target PATH --skill skill1,skill2   Install multiple specific components
-  skillkit.sh install --target PATH --scope all             Include external components (default: local only)
+  skillkit.sh install --target PATH --scope all             Include external components (default: repo-local)
   skillkit.sh export --output PATH          Export portable bundle
 
 Dimensions:
@@ -45,6 +45,7 @@ Examples:
   ./scripts/skillkit.sh install --target ~/repo --category agent --platform codex
   ./scripts/skillkit.sh install --target ~/repo --skill control-first
   ./scripts/skillkit.sh install --target ~/repo --skill caveman,grill-me
+  ./scripts/skillkit.sh install --target ~/repo
   ./scripts/skillkit.sh install --target ~/repo --scope all
   ./scripts/skillkit.sh search review
   ./scripts/skillkit.sh top 5
@@ -643,13 +644,9 @@ cmd_install() {
     esac
   done
 
-  # Default scope is "local" (repo-only). Use "all" to include external.
-  if [[ -z "$scope" ]]; then
-    scope="local"
-  fi
-  if [[ "$scope" == "local" ]]; then
-    source_filter="internal"
-  fi
+  # scope="local" means: install everything possible at repo-level.
+  # External skills with local-safe commands (e.g. npx skills add) are included.
+  # External skills with global-only commands (e.g. npm -g, curl | sh) are skipped.
 
   if [[ -z "$target" ]]; then
     printf 'Error: --target is required\n' >&2
