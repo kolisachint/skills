@@ -58,35 +58,7 @@ Planning is thinking. Bad tools let you skip the thinking. plannotator forces st
 
 We rejected heavier project management integrations. You don't need Jira in your editor. You need a way to think clearly about what comes next.
 
-### context-audit
-
-You can't optimize what you can't see. context-audit pulls back the curtain on what's actually happening in your sessions. It's not about metrics for metrics' sake. It's about understanding where your attention goes.
-
-This one is foundational. The other skills are useful. This one is necessary.
-
 ---
-
-## Why These Skills Stay Local
-
-Three skills aren't pulled from external packages. They're maintained here, in this repo. Here's why.
-
-### control-first
-
-Control isn't a feature. It's a philosophy. This skill embodies how we think about human-AI collaboration. It can't be outsourced because it's too central to what this kit represents. Every other skill is judged by the standards this one sets.
-
-Keeping it local means we can iterate fast. It changes as our understanding changes. It stays current with the platform without waiting for upstream updates.
-
-### pi-coding-agent
-
-This is the interface layer. The thing that translates human intent into action. It's deeply tied to Claude Code's specific affordances. An external package would always be slightly wrong, slightly behind.
-
-By keeping it local, we ensure it matches the exact version you're running. No version mismatches. No deprecated APIs. It just works because it's built for exactly what you're using.
-
-### local-inference
-
-Running models locally is a superpower. It's also a mess of dependencies, drivers, and configuration. This skill abstracts just enough to make it usable without hiding so much that you can't debug it.
-
-External packages tend to over-abstract or under-deliver. We wanted something that hits the middle. Works out of the box. Transparent when you need to peek inside.
 
 ---
 
@@ -128,9 +100,16 @@ If a skill needs a dashboard, a config file, and a three-step initialization, it
 
 ### For Beginners
 
-Start with the core skills. control-first, pi-coding-agent, and context-audit. These give you the foundation. Learn them well. Everything else builds on top.
+Start with one skill. Use it until it's automatic before adding more.
+Depth beats breadth. Ten well-understood skills beat fifty you barely know.
 
-Add external skills one at a time. Use them until they're automatic before adding more. Depth beats breadth. Ten well-understood skills beat fifty you barely know.
+Pick based on your pain point:
+- Burning too many tokens? → caveman
+- Requirements unclear? → grill-me
+- Need TDD discipline? → superpowers
+- Costs too high? → codeburn
+- Plans need review? → plannotator
+- Need production rigor? → agent-skills
 
 ### For Advanced Users
 

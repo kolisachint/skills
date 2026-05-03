@@ -94,7 +94,6 @@ make bootstrap-ai TARGET=~/repo
 | Name | Platform | Description |
 |------|----------|-------------|
 | **codeburn** | all | Interactive TUI for token/cost observability *(4.6K★)* |
-| **context-audit** | all | Context bloat and instruction drift monitoring |
 
 ---
 
