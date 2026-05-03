@@ -17,22 +17,22 @@ Commands:
   install.sh list-platforms                Show available platforms
   install.sh search KEYWORD                Search components by name/description
   install.sh top [N]                       Show top-N starred components
-  install.sh install --target PATH         Install all catalog components
-  install.sh install --target PATH --skill NAME          Install specific component(s)
-  install.sh install --target PATH --category CATEGORY   Install by category
-  install.sh install --target PATH --platform PLATFORM   Install by platform
-  install.sh install --target PATH --agent-target AGENT  Install by agent target
-  install.sh install --target PATH --from FILE           Install from favorites file
-  install.sh install --target PATH --from FILE --tag TAG Install favorites matching tags
+  install.sh --target PATH         Install all catalog components
+  install.sh --target PATH --skill NAME          Install specific component(s)
+  install.sh --target PATH --category CATEGORY   Install by category
+  install.sh --target PATH --platform PLATFORM   Install by platform
+  install.sh --target PATH --agent-target AGENT  Install by agent target
+  install.sh --target PATH --from FILE           Install from favorites file
+  install.sh --target PATH --from FILE --tag TAG Install favorites matching tags
   install.sh export --output PATH          Export portable bundle
 
 Examples:
   ./scripts/install.sh list
   ./scripts/install.sh search review
-  ./scripts/install.sh install --target ~/repo --skill caveman
-  ./scripts/install.sh install --target ~/repo --skill caveman,grill-me
-  ./scripts/install.sh install --target ~/repo --from favorites.tsv --tag daily-driver
-  ./scripts/install.sh install --target ~/repo --category workflow
+  ./scripts/install.sh --target ~/repo --skill caveman
+  ./scripts/install.sh --target ~/repo --skill caveman,grill-me
+  ./scripts/install.sh --target ~/repo --from favorites.tsv --tag daily-driver
+  ./scripts/install.sh --target ~/repo --category workflow
 EOF
 }
 
@@ -117,9 +117,9 @@ cmd_list() {
     printf '\n'
   done < <(catalog_get_unique 2)
 
-  printf 'Install one:     ./scripts/install.sh install --target ~/repo --skill <name>\n'
-  printf 'Install by cat:  ./scripts/install.sh install --target ~/repo --category <cat>\n'
-  printf 'Install all:     ./scripts/install.sh install --target ~/repo\n\n'
+  printf 'Install one:     ./scripts/install.sh --target ~/repo --skill <name>\n'
+  printf 'Install by cat:  ./scripts/install.sh --target ~/repo --category <cat>\n'
+  printf 'Install all:     ./scripts/install.sh --target ~/repo\n\n'
 }
 
 cmd_list_categories() {
@@ -223,7 +223,7 @@ cmd_search() {
     }
   '
 
-  printf '\nInstall: ./scripts/install.sh install --target ~/repo --skill <name>\n\n'
+  printf '\nInstall: ./scripts/install.sh --target ~/repo --skill <name>\n\n'
 }
 
 cmd_top() {
@@ -470,6 +470,11 @@ cmd_export() {
 # ---------------------------------------------------------------------------
 # Main dispatcher
 # ---------------------------------------------------------------------------
+
+# If first argument is a flag (starts with --), default to install command
+if [[ "${1:-}" == --* ]]; then
+  set -- install "$@"
+fi
 
 case "${1:-}" in
   list)

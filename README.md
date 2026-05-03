@@ -9,21 +9,21 @@ Curated components for coding agents, organized by how you use them, where you u
 git clone https://github.com/kolisachint/skills.git && cd skills
 
 # 2. Install a specific skill
-./install.sh install --target ~/repo --skill caveman
+./install.sh --target ~/repo --skill caveman
 
 # 3. Or install by category
-./install.sh install --target ~/repo --category workflow
+./install.sh --target ~/repo --category workflow
 
 # 4. Or install everything in the catalog
-./install.sh install --target ~/repo
+./install.sh --target ~/repo
 ```
 
 **Windows:**
 ```powershell
 git clone https://github.com/kolisachint/skills.git; cd skills
-.\install.ps1 install --target C:\code\repo --skill caveman
-.\install.ps1 install --target C:\code\repo --category workflow
-.\install.ps1 install --target C:\code\repo
+.\install.ps1 --target C:\code\repo --skill caveman
+.\install.ps1 --target C:\code\repo --category workflow
+.\install.ps1 --target C:\code\repo
 ```
 
 ### Bootstrap from Favorites
@@ -32,13 +32,13 @@ Curate your most-used components in `favorites.tsv`, then batch-install:
 
 ```bash
 # macOS / Linux — install everything tagged "daily-driver" or "critical"
-./install.sh install --target ~/repo --from favorites.tsv --tag daily-driver,critical
+./install.sh --target ~/repo --from favorites.tsv --tag daily-driver,critical
 
 # macOS / Linux — via Make
 make bootstrap-ai TARGET=~/repo
 
 # Windows — install everything tagged "daily-driver" or "critical"
-.\install.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver,critical
+.\install.ps1 --target C:\code\repo --from favorites.tsv --tag daily-driver,critical
 ```
 
 ---

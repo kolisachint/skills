@@ -13,22 +13,22 @@ Commands:
   .\install.ps1 list-platforms                Show available platforms
   .\install.ps1 search KEYWORD                Search components by name/description
   .\install.ps1 top [N]                       Show top-N starred components
-  .\install.ps1 install --target PATH         Install all catalog components
-  .\install.ps1 install --target PATH --skill NAME          Install specific component(s)
-  .\install.ps1 install --target PATH --category CATEGORY   Install by category
-  .\install.ps1 install --target PATH --platform PLATFORM   Install by platform
-  .\install.ps1 install --target PATH --agent-target AGENT  Install by agent target
-  .\install.ps1 install --target PATH --from FILE           Install from favorites file
-  .\install.ps1 install --target PATH --from FILE --tag TAG Install favorites matching tags
+  .\install.ps1 --target PATH         Install all catalog components
+  .\install.ps1 --target PATH --skill NAME          Install specific component(s)
+  .\install.ps1 --target PATH --category CATEGORY   Install by category
+  .\install.ps1 --target PATH --platform PLATFORM   Install by platform
+  .\install.ps1 --target PATH --agent-target AGENT  Install by agent target
+  .\install.ps1 --target PATH --from FILE           Install from favorites file
+  .\install.ps1 --target PATH --from FILE --tag TAG Install favorites matching tags
   .\install.ps1 export --output PATH          Export portable bundle
 
 Examples:
   .\install.ps1 list
   .\install.ps1 search review
-  .\install.ps1 install --target C:\code\repo --skill caveman
-  .\install.ps1 install --target C:\code\repo --skill caveman,grill-me
-  .\install.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver
-  .\install.ps1 install --target C:\code\repo --category workflow
+  .\install.ps1 --target C:\code\repo --skill caveman
+  .\install.ps1 --target C:\code\repo --skill caveman,grill-me
+  .\install.ps1 --target C:\code\repo --from favorites.tsv --tag daily-driver
+  .\install.ps1 --target C:\code\repo --category workflow
 "@
 }
 
@@ -110,9 +110,9 @@ function Cmd-List {
     Write-Host ""
   }
 
-  Write-Host "Install one:     .\install.ps1 install --target C:\code\repo --skill <name>"
-  Write-Host "Install by cat:  .\install.ps1 install --target C:\code\repo --category <cat>"
-  Write-Host "Install all:     .\install.ps1 install --target C:\code\repo"
+  Write-Host "Install one:     .\install.ps1 --target C:\code\repo --skill <name>"
+  Write-Host "Install by cat:  .\install.ps1 --target C:\code\repo --category <cat>"
+  Write-Host "Install all:     .\install.ps1 --target C:\code\repo"
   Write-Host ""
 }
 
@@ -217,7 +217,7 @@ function Cmd-Search {
   }
 
   Write-Host ""
-  Write-Host "Install: .\install.ps1 install --target C:\code\repo --skill <name>"
+  Write-Host "Install: .\install.ps1 --target C:\code\repo --skill <name>"
   Write-Host ""
 }
 
@@ -433,6 +433,12 @@ function Cmd-Export {
 
 $command = $args[0]
 $remaining = $args[1..$args.Length]
+
+# If first argument is a flag (starts with --), default to install command
+if ($command -match '^--') {
+  $remaining = $args
+  $command = "install"
+}
 
 switch ($command) {
   "list" {
