@@ -348,6 +348,26 @@ platform_skill_dir() {
   esac
 }
 
+# Return the destination path for a skill file on a given platform.
+# Pi and Codex use .<platform>/skills/<name>/SKILL.md (dir per skill).
+# Others use flat files: .<platform>/skills/<name>.md
+platform_skill_dest() {
+  local platform="$1"
+  local target="$2"
+  local name="$3"
+  local src_file="$4"
+  local plat_dir
+  plat_dir=$(platform_skill_dir "$platform" "$target")
+  case "$platform" in
+    pi|codex)
+      printf '%s/%s/%s' "$plat_dir" "$name" "$(basename "$src_file")"
+      ;;
+    *)
+      printf '%s/%s.md' "$plat_dir" "$name"
+      ;;
+  esac
+}
+
 platform_agent_dir() {
   local platform="$1"
   local target="$2"
@@ -400,11 +420,11 @@ install_internal() {
   # Install to platform-specific directories
   local plat
   for plat in $active_platforms; do
-    local plat_dir
-    plat_dir=$(platform_skill_dir "$plat" "$target")
-    if [[ -n "$plat_dir" ]]; then
-      mkdir -p "$plat_dir"
-      cp "$src_file" "$plat_dir/$name.md"
+    local plat_dest
+    plat_dest=$(platform_skill_dest "$plat" "$target" "$name" "$src_file")
+    if [[ -n "$plat_dest" ]]; then
+      mkdir -p "$(dirname "$plat_dest")"
+      cp "$src_file" "$plat_dest"
     fi
 
     # If this is an agent-specific workflow, also install agent configs
@@ -426,9 +446,10 @@ install_internal() {
 }
 
 install_external() {
-  local name="$1"
-  local description="$2"
-  local install_cmd="$3"
+  local target="$1"
+  local name="$2"
+  local description="$3"
+  local install_cmd="$4"
 
   if [[ -z "$install_cmd" || "$install_cmd" == "-" ]]; then
     printf '  ⚠ %s: no install command\n' "$name" >&2
@@ -437,7 +458,9 @@ install_external() {
 
   printf '  → %s (%s)\n' "$name" "$description"
   printf '    Running: %s\n' "$install_cmd"
-  if eval "$install_cmd"; then
+  # Run from target directory so tools like `npx skills add` create
+  # project-local .agents/skills/ and platform symlinks in the right place.
+  if (cd "$target" && eval "$install_cmd"); then
     printf '  ✓ %s installed\n' "$name"
   else
     printf '  ⚠ %s installation failed (non-fatal)\n' "$name" >&2
@@ -676,7 +699,7 @@ cmd_install() {
     local name description install_cmd
     while IFS=$'\t' read -r name _ _ _ _ description install_cmd _; do
       [[ -z "$name" ]] && continue
-      install_external "$name" "$description" "$install_cmd"
+      install_external "$target" "$name" "$description" "$install_cmd"
     done < <(printf '%s\n' "$components" | awk -F'\t' '$3=="external"')
   fi
 

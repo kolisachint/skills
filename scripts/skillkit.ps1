@@ -399,7 +399,10 @@ function Install-Internal {
 }
 
 function Install-External {
-  param([PSCustomObject]$Component)
+  param(
+    [string]$Target,
+    [PSCustomObject]$Component
+  )
 
   if (-not $Component.InstallCommand -or $Component.InstallCommand -eq "-") {
     Write-Host "  ⚠ $($Component.Name): no install command" -ForegroundColor Yellow
@@ -409,10 +412,15 @@ function Install-External {
   Write-Host "  → $($Component.Name) ($($Component.Description))"
   Write-Host "    Running: $($Component.InstallCommand)"
   try {
+    # Run from target directory so tools create project-local files
+    $origDir = Get-Location
+    Set-Location $Target
     Invoke-Expression $Component.InstallCommand
+    Set-Location $origDir
     Write-Host "  ✓ $($Component.Name) installed"
   }
   catch {
+    Set-Location $origDir
     Write-Warning "  ⚠ $($Component.Name) installation failed (non-fatal): $_"
   }
 }
@@ -615,7 +623,7 @@ function Cmd-Install {
     Write-Host ""
     Write-Host "→ Installing external components..."
     foreach ($comp in ($components | Where-Object { $_.Source -eq "external" } | Sort-Object Name)) {
-      Install-External -Component $comp
+      Install-External -Target $Target -Component $comp
     }
   }
 

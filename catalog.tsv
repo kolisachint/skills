@@ -34,10 +34,10 @@ codex-reviewer	workflow	internal	codex	codex	Codex-specific code review subagent
 copilot-pr-agent	agent	internal	copilot	copilot	Copilot custom PR review agent configuration	-	-
 claude-research	prompt	internal	claude	claude	Deep research prompt template for Claude projects	-	-
 opencode-debug	command	internal	opencode	opencode	Debug command for OpenCode with structured logging	-	-
-superpowers	workflow	external	all	all	Complete TDD and development methodology framework with 20+ production skills	npx skills add obra/superpowers	90K
-agent-skills	skill	external	all	all	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills	20K+
-caveman	command	external	all	all	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman	52K
-grill-me	command	external	all	all	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me	31K
+superpowers	workflow	external	all	all	Complete TDD and development methodology framework with 20+ production skills	npx skills add obra/superpowers --yes	90K
+agent-skills	skill	external	all	all	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills --yes	20K+
+caveman	command	external	all	all	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman --yes	52K
+grill-me	command	external	all	all	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me --yes	31K
 plannotator	command	external	all	all	Visual plan and diff review with annotations	curl -s https://plannotator.ai/install.sh | sh	5K
 codeburn	tool	external	all	all	Interactive TUI dashboard for token/cost observability	npm install -g codeburn	4.6K
 context-audit	tool	external	all	all	Context bloat detection and instruction drift monitoring	npm install -g ctxaudit	-
