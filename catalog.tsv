@@ -32,4 +32,3 @@ caveman	command	external	all	all	Ultra-compressed communication mode - 75% token
 grill-me	command	external	all	all	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me --yes	31K
 plannotator	command	external	all	all	Visual plan and diff review with annotations	npm install @plannotator/pi-extension	5K
 codeburn	tool	external	all	all	Interactive TUI dashboard for token/cost observability	npm install codeburn	4.6K
-context-audit	tool	external	all	all	Context bloat detection and instruction drift monitoring	npm install ctxaudit	-
