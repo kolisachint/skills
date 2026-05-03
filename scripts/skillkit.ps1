@@ -23,7 +23,7 @@ Commands:
   .\scripts\skillkit.ps1 install --target PATH --agent-target codex    Install only Codex-targeted agents/workflows
   .\scripts\skillkit.ps1 install --target PATH --skill control-first   Install a specific component by name
   .\scripts\skillkit.ps1 install --target PATH --skill skill1,skill2   Install multiple specific components
-  .\scripts\skillkit.ps1 install --target PATH --scope local           Install only repo-local components (skip external)
+  .\scripts\skillkit.ps1 install --target PATH --scope all             Include external components (default: local only)
   .\scripts\skillkit.ps1 export --output PATH          Export portable bundle
 
 Dimensions:
@@ -39,7 +39,7 @@ Examples:
   .\scripts\skillkit.ps1 install --target C:\code\repo --platform copilot --agent-target copilot
   .\scripts\skillkit.ps1 install --target C:\code\repo --skill control-first
   .\scripts\skillkit.ps1 install --target C:\code\repo --skill caveman,grill-me
-  .\scripts\skillkit.ps1 install --target C:\code\repo --scope local
+  .\scripts\skillkit.ps1 install --target C:\code\repo --scope all
   .\scripts\skillkit.ps1 search review
   .\scripts\skillkit.ps1 top 5
 "@
@@ -576,7 +576,10 @@ function Cmd-Install {
     [string]$Scope = ""
   )
 
-  # --scope local forces source=internal, skipping all external components
+  # Default scope is "local" (repo-only). Use "all" to include external.
+  if (-not $Scope) {
+    $Scope = "local"
+  }
   if ($Scope -eq "local") {
     $SourceFilter = "internal"
   }

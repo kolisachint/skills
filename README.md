@@ -32,24 +32,23 @@ curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh 
 git clone https://github.com/kolisachint/skills.git
 cd skills
 
-# 2. Install everything to your project
+# 2. Install repo-local skills (default — no external deps)
 ./install.sh --target ~/repo
 
-# 3. Or install with filters
-./install.sh --target ~/repo --source internal
+# 3. Include external skills too (opt-in)
+./install.sh --target ~/repo --scope all
+
+# 4. Or install with filters
 ./install.sh --target ~/repo --category workflow
 ./install.sh --target ~/repo --platform pi
 ./install.sh --target ~/repo --agent-target codex
 
-# 4. Install specific skill(s) by name
+# 5. Install specific skill(s) by name
 ./install.sh --target ~/repo --skill control-first
-./install.sh --target ~/repo --skill control-first,local-inference,caveman
-
-# 5. Strictly repo-local (skip anything that touches home dir)
-./install.sh --target ~/repo --scope local
+./install.sh --target ~/repo --skill control-first,local-inference
 
 # 6. Or run scripts directly
-./scripts/skillkit.sh install --target ~/repo --source internal --category workflow
+./scripts/skillkit.sh install --target ~/repo --category workflow
 ```
 
 **Windows manual:**
@@ -140,16 +139,16 @@ Every installation can be filtered across six dimensions:
 3. **Platform** — `opencode`, `pi`, `copilot`, `codex`, `claude`
 4. **Agent Target** — `all` or a specific agent/platform name
 5. **Skill** — specific component name(s), comma-separated for multiple
-6. **Scope** — `local` forces only repo-level components (skips external)
+6. **Scope** — `local` (default) or `all` to include external components
 
 ### Repo-Local by Default
 
-This skillkit is designed to be **repo-local**. Everything it installs lives
-inside your target directory. If you delete the repo, the skills are gone.
+This skillkit is **repo-local by default**. Only internal components are
+installed unless you explicitly opt in with `--scope all`.
 
-Use `--scope local` to guarantee this — it skips any external component that
-cannot be installed purely inside the repo. External components that require
-global or user-level installation are skipped with a warning.
+Everything it installs lives inside your target directory. If you delete the
+repo, the skills are gone. No files are written to `~/.claude`, `~/.config`,
+`~/.agents`, or any other home directory path.
 
 When platform directories already exist in the target, the installer
 auto-detects them. Use `--platform` to force installation to a specific
