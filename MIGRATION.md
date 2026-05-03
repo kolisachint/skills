@@ -1,138 +1,110 @@
-# Migration Guide: External Skills
+# Migration Guide
 
-## What Changed
+## v2.0: Multi-Dimensional Catalog
 
-Starting with this version, five skills have been moved from bundled local copies
-to external dependencies sourced from their actively maintained GitHub repositories:
+### What Changed
+
+The catalog and installer have been expanded from two dimensions to four:
+
+| Dimension | Old Values | New Values |
+|-----------|-----------|------------|
+| **Source** | `bundled`, `external` | `internal`, `external` |
+| **Category** | `workflow`, `command`, `tool`, `agent` | `skill`, `prompt`, `command`, `tool`, `agent`, `workflow` |
+| **Platform** | — | `all`, `opencode`, `pi`, `copilot`, `codex`, `claude` |
+| **Agent Target** | — | `all`, or specific agent name |
+
+### Why This Change?
+
+The previous system treated all local components as "bundled" and all third-party as "external", with only four coarse categories. The new system supports:
+
+1. **Finer-grained categories**: `skill` (reusable knowledge), `prompt` (templates), `command` (interactive modes), `tool` (utilities), `agent` (harnesses), `workflow` (processes)
+2. **Platform routing**: Components can declare which platforms they support. The installer copies them to the right directories (`.pi/skills/`, `.codex/skills/`, `.github/copilot-skills/`, etc.)
+3. **Agent-specific workflows**: A component can target a specific agent (e.g., a Codex subagent workflow or a Copilot custom agent) and the installer routes it appropriately
+
+### Catalog Schema Migration
+
+Old format (8 columns):
+```
+name | category | source | description | install_command | stars
+```
+
+New format (8 columns):
+```
+name | category | source | platforms | agent_target | description | install_command | stars
+```
+
+**To migrate existing entries:**
+1. Rename `bundled` → `internal` in the source column
+2. Add `platforms` column after `source` (use `all` for existing entries)
+3. Add `agent_target` column after `platforms` (use `all` for existing entries)
+
+### CLI Changes
+
+| Old Command | New Command |
+|-------------|-------------|
+| `skillkit.sh install --target ~/repo --source bundled` | `skillkit.sh install --target ~/repo --source internal` |
+| `skillkit.sh install --target ~/repo --source external` | `skillkit.sh install --target ~/repo --source external` |
+| `skillkit.sh install --target ~/repo --category workflow` | `skillkit.sh install --target ~/repo --category workflow` |
+| — | `skillkit.sh install --target ~/repo --platform pi` |
+| — | `skillkit.sh install --target ~/repo --agent-target codex` |
+| — | `skillkit.sh list-platforms` |
+
+### Directory Structure Changes
+
+**Old install layout:**
+```
+.ai/skillkit/skills/*.md
+.ai/skillkit/AGENTS.md
+```
+
+**New install layout:**
+```
+.ai/skillkit/skills/*.md
+.ai/skillkit/prompts/*.md
+.ai/skillkit/commands/*.md
+.ai/skillkit/agents/*.md
+.ai/skillkit/workflows/*.md
+.ai/skillkit/AGENTS.md
+.pi/skills/*.md
+.codex/skills/*.md
+.github/copilot-skills/*.md
+.claude/skills/*.md
+.opencode/skills/*.md
+```
+
+### What You Need to Do
+
+1. **Update your catalog references**: If you have custom catalogs or scripts referencing `catalog.tsv`, update them to use the new column order.
+2. **Update your commands**: Replace `--source bundled` with `--source internal` in any scripts or documentation.
+3. **Re-install in existing projects**: Run the installer again in projects to get the new platform-specific directory layout:
+   ```bash
+   ./scripts/skillkit.sh install --target ~/repo
+   ```
+
+### Backward Compatibility
+
+- The `skills/` directory still uses `SKILL.md` as the default filename.
+- New categories (`prompt`, `command`) use `PROMPT.md` and `COMMAND.md` respectively.
+- Existing `AGENTS.md` files with `BEGIN AI SKILLKIT` / `END AI SKILLKIT` markers will be updated correctly.
+
+---
+
+## v1.1: External Skills Migration
+
+Starting with v1.1, five skills were moved from bundled local copies to external dependencies:
 
 | Skill | Old Location | New Source | Install Command |
 |-------|--------------|------------|-----------------|
 | `caveman` | `skills/caveman/` | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) | `npx skills add JuliusBrussee/caveman` |
 | `grill-me` | `skills/grill-me/` | [mattpocock/skills](https://github.com/mattpocock/skills) | `npx skills add mattpocock/skills --skill grill-me` |
 | `codeburn` | `skills/codeburn/` | [AgentSeal/CodeBurn](https://github.com/AgentSeal/CodeBurn) | `npm install -g codeburn` |
-| `plannotator` | `skills/plannotator/` | [backnotprop/plannotator](https://github.com/backnotprop/plannotator) | `curl -s https://plannotator.ai/install.sh \| sh` |
+| `plannotator` | `skills/plannotator/` | [backnotprop/plannotator](https://github.com/backnotprop/plannotator) | `curl -s https://plannotator.ai/install.sh | sh` |
 | `context-audit` | `skills/context-audit/` | [sanjeed5/ctxaudit](https://github.com/sanjeed5/ctxaudit) | `npm install -g ctxaudit` |
 
-## Why This Change?
+### What Stayed Local
 
-These five skills have thriving open-source ecosystems with:
-- **Active development** with regular updates and bug fixes
-- **CLI tools and integrations** beyond simple markdown files
-- **Auto-installers** for 30+ different AI coding agents
-- **Community contributions** from hundreds of developers
+Three core skills remain internal:
 
-By sourcing them externally:
-1. You always get the latest features and fixes
-2. We eliminate the maintenance burden of keeping copies in sync
-3. The core skillkit stays focused on its unique value proposition
-4. You get full-featured tools instead of simplified guidelines
-
-## What You Need to Do
-
-### If You Were Using These Skills
-
-Install the external versions:
-
-```bash
-# macOS/Linux
-./scripts/install-external.sh
-
-# Windows PowerShell
-.\scripts\install-external.ps1
-```
-
-Or install specific skills:
-
-```bash
-./scripts/install-external.sh --skills caveman,grill-me
-```
-
-### If You Have Existing Projects
-
-Your existing projects with the old bundled skills will continue to work, but
-to get the latest features, install the external versions in those projects:
-
-```bash
-cd /path/to/your/project
-/path/to/skillkit/scripts/install-external.sh
-```
-
-## What Stayed the Same
-
-Three core skills remain bundled in this repository:
-
-- **`control-first`**: The default workflow framework (unique to this project)
-- **`pi-coding-agent`**: Pi harness documentation (not replaceable)
-- **`local-inference`**: Curated best practices guide (aggregate of scattered info)
-
-## What You Gain
-
-### Caveman (JuliusBrussee/caveman)
-- 5 intensity levels (lite, full, ultra, wenyan-*)
-- `/caveman` command for mode switching
-- `/caveman-commit` for terse commits
-- `/caveman-review` for one-line PR comments
-- `/caveman:compress` for memory file compression
-- Auto-activation hooks for Claude/Codex/Gemini
-
-### Grill-Me (mattpocock/skills)
-- Decision-tree traversal with dependency resolution
-- Recommendation-first answers
-- Codebase-first approach
-- `/grill-with-docs` with ADR integration
-- `/setup-matt-pocock-skills` ecosystem
-
-### CodeBurn (AgentSeal/CodeBurn)
-- Interactive TUI dashboard
-- 13-category task classification
-- One-shot success rate tracking
-- Multi-provider support (Claude/Codex/Cursor/Pi/Opencode)
-- CSV/JSON export
-- Native macOS menubar app
-
-### Plannotator (backnotprop/plannotator)
-- Visual plan review UI in browser
-- Plan diff between versions
-- Code review with inline annotations
-- Claude/Codex/Pi/Opencode/Gemini plugins
-- Private sharing via URL compression
-- Obsidian integration
-
-### Context Audit (sanjeed5/ctxaudit)
-- Automated scanning of agent config files
-- Token counting per file and category
-- Startup vs full context analysis
-- Machine-readable output for CI integration
-
-## Troubleshooting
-
-### "command not found: npx"
-
-Install Node.js from [nodejs.org](https://nodejs.org) first.
-
-### "permission denied" on install-external.sh
-
-Make it executable:
-```bash
-chmod +x ./scripts/install-external.sh
-```
-
-### curl not available on Windows
-
-Use PowerShell instead:
-```powershell
-.\scripts\install-external.ps1
-```
-
-### External install fails behind corporate proxy
-
-Install manually using the commands listed in the README.md.
-
-## Questions?
-
-See the component documentation in `components/` for each external tool:
-- `components/caveman.md`
-- `components/grill-me.md`
-- `components/codeburn.md`
-- `components/plannotator.md`
-- `components/context-audit.md`
+- **`control-first`**: The default workflow framework
+- **`pi-coding-agent`**: Pi harness documentation
+- **`local-inference`**: Curated best practices guide

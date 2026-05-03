@@ -8,7 +8,7 @@ This document explains why we selected specific tools for the skillkit and what 
 
 ## Workflow Frameworks
 
-### Selected: `control-first` (bundled)
+### Selected: `control-first` (internal)
 
 **What it does:** Defines the core human-in-the-loop workflow: clarify → plan → patch → test → review
 
@@ -37,7 +37,7 @@ This document explains why we selected specific tools for the skillkit and what 
 
 ## Terminal Harness
 
-### Selected: `pi-coding-agent` (bundled)
+### Selected: `pi-coding-agent` (internal)
 
 **What it does:** Documents Pi as a thin terminal harness—just four tools, explicit control
 
@@ -242,9 +242,9 @@ This document explains why we selected specific tools for the skillkit and what 
 
 | Category | Selected | Stars | Why Over Alternatives |
 |----------|----------|-------|----------------------|
-| **Workflow** | control-first (local) | — | Defines our philosophy, too central to outsource |
+| **Workflow** | control-first (internal) | — | Defines our philosophy, too central to outsource |
 | **Workflow** | superpowers (external) | 90K | Most comprehensive, explicit phases |
-| **Terminal** | pi-coding-agent (local) | — | Pi-specific documentation |
+| **Terminal** | pi-coding-agent (internal) | — | Pi-specific documentation |
 | **Interrogation** | grill-me (external) | 31K | Structure without rigidity |
 | **Compression** | caveman (external) | 52K | Simple, effective, community validated |
 | **Observability** | codeburn (external) | 4.6K | Small, focused, trustworthy |

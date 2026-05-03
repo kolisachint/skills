@@ -1,25 +1,43 @@
 # Portable AI Skillkit - Component Catalog
-# Single source of truth for all skills, commands, tools, and agents
-# Format: name | category | source | description | install_command | stars
+# Single source of truth for all skills, prompts, commands, tools, agents, and workflows
+# Format: name | category | source | platforms | agent_target | description | install_command | stars
 #
 # Categories:
-#   workflow  - Structured processes for how you work
-#   command   - Interactive modes invoked on demand
+#   skill     - Reusable capabilities and knowledge modules
+#   prompt    - Prompt templates and patterns
+#   command  - Interactive modes invoked on demand
 #   tool      - Monitoring, analysis, and routing utilities
 #   agent     - Terminal harnesses and execution environments
+#   workflow  - Structured processes for how you work
 #
 # Source:
-#   bundled   - Maintained in this repo (skills/)
+#   internal  - Maintained in this repo (skills/)
 #   external  - Sourced from actively maintained GitHub repos
+#
+# Platforms (comma-separated):
+#   all       - Works across all platforms
+#   opencode  - OpenCode specific
+#   pi        - Pi specific
+#   copilot   - GitHub Copilot specific
+#   codex     - OpenAI Codex specific
+#   claude    - Claude specific
+#
+# Agent Target:
+#   all       - Generic, works with any agent
+#   <name>    - Specific agent or platform target (e.g., codex, copilot, claude, pi, opencode)
 
-name	category	source	description	install_command	stars
-control-first	workflow	bundled	Default control-first coding workflow: clarify, plan, patch, test, review	-	-
-superpowers	workflow	external	Complete TDD and development methodology framework with 20+ production skills	npx skills add obra/superpowers	90K
-agent-skills	workflow	external	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills	20K+
-caveman	command	external	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman	52K
-grill-me	command	external	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me	31K
-plannotator	command	external	Visual plan and diff review with annotations	curl -s https://plannotator.ai/install.sh | sh	5K
-codeburn	tool	external	Interactive TUI dashboard for token/cost observability	npm install -g codeburn	4.6K
-context-audit	tool	external	Context bloat detection and instruction drift monitoring	npm install -g ctxaudit	-
-local-inference	tool	bundled	Decide when to route tasks through local inference servers (Ollama/LM Studio)	-	-
-pi-coding-agent	agent	bundled	Pi as the thin terminal harness for coding agents	-	-
+name	category	source	platforms	agent_target	description	install_command	stars
+control-first	workflow	internal	all	all	Default control-first coding workflow: clarify, plan, patch, test, review	-	-
+local-inference	skill	internal	all	all	Decide when to route tasks through local inference servers (Ollama/LM Studio)	-	-
+pi-coding-agent	agent	internal	pi	pi	Pi as the thin terminal harness for coding agents	-	-
+codex-reviewer	workflow	internal	codex	codex	Codex-specific code review subagent workflow	-	-
+copilot-pr-agent	agent	internal	copilot	copilot	Copilot custom PR review agent configuration	-	-
+claude-research	prompt	internal	claude	claude	Deep research prompt template for Claude projects	-	-
+opencode-debug	command	internal	opencode	opencode	Debug command for OpenCode with structured logging	-	-
+superpowers	workflow	external	all	all	Complete TDD and development methodology framework with 20+ production skills	npx skills add obra/superpowers	90K
+agent-skills	skill	external	all	all	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills	20K+
+caveman	command	external	all	all	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman	52K
+grill-me	command	external	all	all	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me	31K
+plannotator	command	external	all	all	Visual plan and diff review with annotations	curl -s https://plannotator.ai/install.sh | sh	5K
+codeburn	tool	external	all	all	Interactive TUI dashboard for token/cost observability	npm install -g codeburn	4.6K
+context-audit	tool	external	all	all	Context bloat detection and instruction drift monitoring	npm install -g ctxaudit	-

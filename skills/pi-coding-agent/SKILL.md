@@ -1,6 +1,8 @@
 ---
 name: pi-coding-agent
 description: Use this skill when working with Pi Coding Agent as the control-first terminal harness, including project setup, skill routing, model routing, and minimal tool usage.
+platforms: pi
+agent_target: pi
 ---
 
 # Pi Coding Agent
@@ -13,6 +15,14 @@ over read, write, edit, and shell operations.
 Pi is the execution shell, not the source of truth. Shared instructions come
 from `AGENTS.md` and `.ai/skillkit/AGENTS.md`; Pi-specific copies live under
 `.pi/skills/`.
+
+## Characteristics
+
+- **Surgical**: Pi is precise and methodical. Good for careful work where accuracy
+  matters more than speed.
+- **Slow**: Compared to other agents, Pi is comparatively slow. Accept this tradeoff
+  or route bounded tasks to faster agents / local models.
+- **Explicit**: Every tool call is visible. No hidden automation.
 
 ## Setup Pattern
 
@@ -30,3 +40,7 @@ from `AGENTS.md` and `.ai/skillkit/AGENTS.md`; Pi-specific copies live under
 4. Use `caveman` for terse output after scope is understood.
 5. Use `codeburn` during weekly cost review, not during every edit.
 
+## Documentation
+
+- Pi Skills: https://pi.dev/docs/latest/skills
+- Prompt Templates: https://pi.dev/docs/latest/prompt-templates
