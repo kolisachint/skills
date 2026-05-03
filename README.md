@@ -1,177 +1,193 @@
 # Portable AI Skillkit
 
-Portable setup for sharing the same coding-agent skills across Codex, Claude Code,
-opencode, GitHub Copilot coding agent, and Pi-style project folders.
-
-The goal is to keep one source of truth in this repo for core workflow skills,
-while leveraging actively maintained external tools for specialized capabilities.
+Curated components for coding agents, organized by how you use them.
 
 ## Quick Start
 
-### macOS Terminal
+### macOS
 
-Install every **core** skill and every supported adapter into another repo:
+```bash
+# Install everything
+./scripts/skillkit.sh install --target ~/repo
 
-```sh
-./scripts/install.sh --target /path/to/project
+# Or install by category
+./scripts/skillkit.sh install --target ~/repo --category workflow
+./scripts/skillkit.sh install --target ~/repo --source bundled
 ```
 
-Install **external** skills from actively maintained GitHub repos:
+### Windows
 
-```sh
-./scripts/install-external.sh
+```powershell
+# Install everything
+.\scripts\skillkit.ps1 install --target C:\code\repo
+
+# Or install by category
+.\scripts\skillkit.ps1 install --target C:\code\repo --category workflow
+.\scripts\skillkit.ps1 install --target C:\code\repo --source bundled
 ```
 
-Install only selected skills:
+### See What's Available
 
-```sh
-./scripts/install.sh --target /path/to/project --skills control-first,pi-coding-agent
-```
-
-Install only selected agent adapters:
-
-```sh
-./scripts/install.sh --target /path/to/project --agents codex,claude,opencode
-```
-
-List available skills:
-
-```sh
+```bash
+# List all components grouped by category
 ./scripts/skillkit.sh list
+
+# List categories only
+./scripts/skillkit.sh list-categories
 ```
 
-List external skills available from GitHub:
+## Curated Components
 
-```sh
-./scripts/skillkit.sh list-external
+### ⚡ Workflows (how you structure work)
+
+1. **control-first** — Default workflow: clarify, plan, patch, test, review *(bundled)*
+2. **superpowers** — Complete TDD and methodology framework *(external, 90K★)*
+3. **agent-skills** — Production engineering from Google's culture *(external, 20K+★)*
+
+### 🎯 Commands (interactive modes)
+
+1. **caveman** — Ultra-compressed communication, 75% token reduction *(external, 52K★)*
+2. **grill-me** — One-question-at-a-time requirement interrogation *(external, 31K★)*
+3. **plannotator** — Visual plan and diff review *(external, 5K★)*
+
+### 🔧 Tools (monitoring & analysis)
+
+1. **codeburn** — Interactive TUI dashboard for token/cost observability *(external, 4.6K★)*
+2. **context-audit** — Context bloat detection and instruction drift monitoring *(external)*
+3. **local-inference** — Route tasks through local inference servers *(bundled)*
+
+### 🤖 Agents (execution harnesses)
+
+1. **pi-coding-agent** — Pi as the thin terminal harness for coding agents *(bundled)*
+
+---
+
+## Installation Guide
+
+### Install Everything
+
+Installs all bundled and external components:
+
+**macOS:**
+```bash
+./scripts/skillkit.sh install --target ~/repo
 ```
 
-List stack components:
-
-```sh
-./scripts/skillkit.sh list-components
-```
-
-Export a portable bundle:
-
-```sh
-./scripts/export.sh --output dist/portable-ai-skillkit
-```
-
-### Windows PowerShell 7
-
-Install every **core** skill and every supported adapter into another repo:
-
+**Windows:**
 ```powershell
-.\scripts\install.ps1 --target C:\code\project
+.\scripts\skillkit.ps1 install --target C:\code\repo
 ```
 
-Install **external** skills from actively maintained GitHub repos:
+### Install by Category
 
+Install only workflow components:
+
+**macOS:**
+```bash
+./scripts/skillkit.sh install --target ~/repo --category workflow
+```
+
+**Windows:**
 ```powershell
-.\scripts\install-external.ps1
+.\scripts\skillkit.ps1 install --target C:\code\repo --category workflow
 ```
 
-Install only selected skills:
+Available categories: `workflow`, `command`, `tool`, `agent`
 
+### Install by Source
+
+Install only bundled (local) components:
+
+**macOS:**
+```bash
+./scripts/skillkit.sh install --target ~/repo --source bundled
+```
+
+**Windows:**
 ```powershell
-.\scripts\install.ps1 --target C:\code\project --skills control-first,pi-coding-agent
+.\scripts\skillkit.ps1 install --target C:\code\repo --source bundled
 ```
 
-List external skills:
+Install only external components:
 
+**macOS:**
+```bash
+./scripts/skillkit.sh install --target ~/repo --source external
+```
+
+**Windows:**
 ```powershell
-.\scripts\skillkit.ps1 list-external
+.\scripts\skillkit.ps1 install --target C:\code\repo --source external
 ```
+
+### Export a Portable Bundle
+
+**macOS:**
+```bash
+./scripts/skillkit.sh export --output ./dist
+```
+
+**Windows:**
+```powershell
+.\scripts\skillkit.ps1 export --output .\dist
+```
+
+---
 
 ## What Gets Installed
 
-- `.ai/skillkit/skills/*.md`: portable Markdown skill copies
-- `.ai/skillkit/AGENTS.md`: shared source-of-truth instruction index
-- `.ai/skillkit/stacks/control-first.md`: the full control-first stack map
-- `.ai/skillkit/components/*.md`: component-specific role and usage notes
-- `AGENTS.md`: shared project adapter for agents that read `AGENTS.md`
-- `CLAUDE.md`: Claude Code adapter importing the shared instructions
-- `.github/copilot-instructions.md`: GitHub Copilot adapter
-- `.opencode/AGENTS.md`: opencode adapter
-- `.codex/skills/*/SKILL.md`: Codex native skill folders
-- `.pi/skills/*/SKILL.md`: Pi-style skill folders
+When you run the install command, these files are created in your target project:
+
+- `.ai/skillkit/skills/*.md` — Skill definitions
+- `.ai/skillkit/AGENTS.md` — Shared instruction index
+- `AGENTS.md` — Project adapter for agents that read `AGENTS.md`
+- `CLAUDE.md` — Claude Code adapter
+- `.github/copilot-instructions.md` — GitHub Copilot adapter
+- `.opencode/AGENTS.md` — opencode adapter
+- `.codex/skills/*/SKILL.md` — Codex native skill folders
+- `.pi/skills/*/SKILL.md` — Pi-style skill folders
 
 Existing instruction files are preserved. The installer updates only a managed
 block marked with `BEGIN AI SKILLKIT` and `END AI SKILLKIT`.
 
-## Core Skills (Bundled)
+---
 
-These skills are maintained in this repository:
+## Component Catalog
 
-- `control-first`: default workflow for clarify, plan, patch, test, review
-- `pi-coding-agent`: Pi as the thin terminal harness
-- `local-inference`: when and how to use Ollama/LM Studio safely
+All components are defined in `catalog.tsv` — a single tab-separated file that
+serves as the source of truth. Each component has:
 
-## External Skills (Install Separately)
+- **Name** — identifier
+- **Category** — workflow, command, tool, or agent
+- **Source** — bundled (maintained here) or external (from GitHub)
+- **Description** — what it does
+- **Install command** — how to install external components
+- **Stars** — GitHub star count (for external components)
 
-These skills are sourced from actively maintained external repositories to ensure
-you always have the latest features and bug fixes:
-
-| Skill | Repository | Install Command | Description |
-|-------|-----------|-----------------|-------------|
-| `caveman` | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) | `npx skills add JuliusBrussee/caveman` | Ultra-compressed communication mode - 75% token reduction |
-| `grill-me` | [mattpocock/skills](https://github.com/mattpocock/skills) | `npx skills add mattpocock/skills --skill grill-me` | One-question-at-a-time requirement interrogation |
-| `codeburn` | [AgentSeal/CodeBurn](https://github.com/AgentSeal/CodeBurn) | `npm install -g codeburn` | Interactive TUI dashboard for token/cost observability |
-| `plannotator` | [backnotprop/plannotator](https://github.com/backnotprop/plannotator) | `curl -s https://plannotator.ai/install.sh \| sh` | Visual plan and diff review with annotations |
-| `context-audit` | [sanjeed5/ctxaudit](https://github.com/sanjeed5/ctxaudit) | `npm install -g ctxaudit` | Context bloat detection and instruction drift monitoring |
-| `superpowers` | [obra/superpowers](https://github.com/obra/superpowers) | `npx skills add obra/superpowers` | Complete TDD and development methodology framework (90K stars) |
-| `agent-skills` | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) | `npx skills add addyosmani/agent-skills` | Production-grade engineering skills from Google's culture (20K+ stars) |
-
-### Why External?
-
-These seven skills have thriving open-source ecosystems with:
-- Active development and community contributions
-- CLI tools and integrations beyond simple markdown
-- Auto-installers for 30+ agents
-- Regular updates and bug fixes
-
-By sourcing them externally, you get the full-featured versions without the
-maintenance burden.
-
-## Control-First Stack Components
-
-| Component | Role | Source |
-|---|---|---|
-| Pi Coding Agent | Core terminal harness | `pi-coding-agent` (bundled) |
-| LM Studio / Ollama | Local inference server | `local-inference` (bundled) |
-| Grill-Me | Requirement interrogation | [mattpocock/skills](https://github.com/mattpocock/skills) |
-| Plannotator | Visual plan and diff review | [backnotprop/plannotator](https://github.com/backnotprop/plannotator) |
-| Caveman | Output token compression | [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) |
-| CodeBurn | Cost and token observability | [AgentSeal/CodeBurn](https://github.com/AgentSeal/CodeBurn) |
-| Context Audit | Context hygiene and instruction drift review | [sanjeed5/ctxaudit](https://github.com/sanjeed5/ctxaudit) |
-| Superpowers | Complete TDD and methodology framework | [obra/superpowers](https://github.com/obra/superpowers) |
-| Agent-Skills | Production engineering from Google's culture | [addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) |
-| Control-First | Default workflow framework | `control-first` (bundled) |
-
-## Migration from Previous Versions
-
-If you were using the bundled versions of `caveman`, `grill-me`, `codeburn`,
-`plannotator`, `context-audit`, `superpowers`, or `agent-skills`, run:
-
-```sh
-./scripts/install-external.sh
-```
-
-This will install the full-featured external versions that replace the
-simplified bundled versions.
+---
 
 ## Philosophy
 
 This is a **curated distribution**, not a collection. See [PHILOSOPHY.md](PHILOSOPHY.md)
 for the complete manifesto on why we made specific choices.
 
-This repository maintains **core workflow frameworks** that are unique to this
-project, while **importing specialized tools** from their canonical sources.
-This approach:
+Core beliefs:
+1. **Humans remain in control** — AI amplifies judgment, doesn't replace it
+2. **Explicit is better than implicit** — No magic, no hidden behavior
+3. **Context is scarce** — Every component must earn its place
+4. **Vendor agnosticism** — Works across platforms
+5. **Progressive disclosure** — Start simple, add complexity only when needed
 
-1. Eliminates maintenance burden for skills with active external communities
-2. Ensures users always have the latest features and bug fixes
-3. Keeps the core skillkit focused on its unique value proposition
-4. Reduces bundle size and installation time
-5. Respects your intelligence—every choice is explained, nothing is hidden
+---
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `catalog.tsv` | Single source of truth for all components |
+| `PHILOSOPHY.md` | Curator's manifesto and design principles |
+| `docs/WHY_THESE_TOOLS.md` | Comparison with alternatives |
+| `MIGRATION.md` | Upgrade guide from previous versions |
+| `skills/` | Bundled skill definitions (3 skills) |
+| `scripts/skillkit.sh` | Unified CLI for macOS/Linux |
+| `scripts/skillkit.ps1` | Unified CLI for Windows |
