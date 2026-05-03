@@ -4,6 +4,44 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $MarkBegin = "<!-- BEGIN AI SKILLKIT -->"
 $MarkEnd = "<!-- END AI SKILLKIT -->"
 
+$ExternalSkills = @{
+  "caveman" = @{
+    Command = "npx skills add JuliusBrussee/caveman"
+    Description = "Ultra-compressed communication mode - 75% token reduction"
+    Url = "https://github.com/JuliusBrussee/caveman"
+  }
+  "grill-me" = @{
+    Command = "npx skills add mattpocock/skills --skill grill-me"
+    Description = "One-question-at-a-time requirement interrogation"
+    Url = "https://github.com/mattpocock/skills"
+  }
+  "codeburn" = @{
+    Command = "npm install -g codeburn"
+    Description = "Interactive TUI dashboard for token/cost observability"
+    Url = "https://github.com/AgentSeal/CodeBurn"
+  }
+  "plannotator" = @{
+    Command = "curl.exe -s https://plannotator.ai/install.sh | sh"
+    Description = "Visual plan and diff review with annotations"
+    Url = "https://github.com/backnotprop/plannotator"
+  }
+  "context-audit" = @{
+    Command = "npm install -g ctxaudit"
+    Description = "Context bloat detection and instruction drift monitoring"
+    Url = "https://github.com/sanjeed5/ctxaudit"
+  }
+  "superpowers" = @{
+    Command = "npx skills add obra/superpowers"
+    Description = "Complete TDD and development methodology framework with 20+ production skills"
+    Url = "https://github.com/obra/superpowers"
+  }
+  "agent-skills" = @{
+    Command = "npx skills add addyosmani/agent-skills"
+    Description = "Production-grade engineering skills from Google's culture"
+    Url = "https://github.com/addyosmani/agent-skills"
+  }
+}
+
 function Show-Usage {
   @"
 Portable AI Skillkit
@@ -11,7 +49,9 @@ Portable AI Skillkit
 Commands:
   .\scripts\skillkit.ps1 list
   .\scripts\skillkit.ps1 list-components
+  .\scripts\skillkit.ps1 list-external
   .\scripts\skillkit.ps1 install --target PATH --skills all|a,b --agents all|a,b
+  .\scripts\skillkit.ps1 install-external [--skills caveman,grill-me,codeburn,plannotator,context-audit,superpowers,agent-skills]
   .\scripts\skillkit.ps1 export --output PATH --skills all|a,b
 
 Agents:
@@ -19,8 +59,9 @@ Agents:
 
 Examples:
   .\scripts\install.ps1 --target C:\code\repo
-  .\scripts\install.ps1 --target C:\code\repo --skills grill-me,caveman
+  .\scripts\install.ps1 --target C:\code\repo --skills control-first,pi-coding-agent
   .\scripts\install.ps1 --target C:\code\repo --agents codex,claude
+  .\scripts\install-external.ps1 --skills caveman,grill-me
 "@
 }
 
@@ -141,8 +182,27 @@ function Write-SharedIndex {
   $lines.Add("")
   $lines.Add("When the user names one of the active skills, follow its instructions from ``.ai/skillkit/skills/<skill>.md``.")
   $lines.Add("For normal coding work, default to ``control-first`` when it is installed.")
-  $lines.Add("Use ``grill-me`` only when unclear requirements would make implementation risky.")
-  $lines.Add("Use ``caveman`` when the user wants terse output or token discipline.")
+  $lines.Add("")
+  $lines.Add("## External Skills (Install Separately)")
+  $lines.Add("")
+  $lines.Add("The following skills are sourced from actively maintained external repositories:")
+  $lines.Add("")
+  $lines.Add("- ``caveman``: Ultra-compressed communication (JuliusBrussee/caveman)")
+  $lines.Add("  Install: npx skills add JuliusBrussee/caveman")
+  $lines.Add("")
+  $lines.Add("- ``grill-me``: One-question-at-a-time requirement interrogation (mattpocock/skills)")
+  $lines.Add("  Install: npx skills add mattpocock/skills --skill grill-me")
+  $lines.Add("")
+  $lines.Add("- ``codeburn``: Token/cost observability dashboard (AgentSeal/CodeBurn)")
+  $lines.Add("  Install: npm install -g codeburn")
+  $lines.Add("")
+  $lines.Add("- ``plannotator``: Visual plan/diff review (backnotprop/plannotator)")
+  $lines.Add("  Install: curl.exe -s https://plannotator.ai/install.sh | sh")
+  $lines.Add("")
+  $lines.Add("- ``context-audit``: Context bloat detection (sanjeed5/ctxaudit)")
+  $lines.Add("  Install: npm install -g ctxaudit")
+  $lines.Add("")
+  $lines.Add("Run ``.\scripts\install-external.ps1`` to install all external skills.")
 
   Set-Content -Path (Join-Path $sharedDir "AGENTS.md") -Value ($lines -join "`n") -Encoding utf8
 }
@@ -280,6 +340,68 @@ function Invoke-ListComponents {
   }
 }
 
+function Invoke-ListExternal {
+  "External Skills (sourced from GitHub):"
+  ""
+  foreach ($skill in $ExternalSkills.Keys | Sort-Object) {
+    $data = $ExternalSkills[$skill]
+    "  $skill"
+    "    Description: $($data.Description)"
+    "    Source: $($data.Url)"
+    ""
+  }
+}
+
+function Invoke-InstallExternal {
+  param([string[]]$Items)
+
+  $skillsCsv = "all"
+  $i = 0
+  while ($i -lt $Items.Count) {
+    if ($Items[$i] -in @("--skills", "-skills", "-Skills")) {
+      if ($i + 1 -ge $Items.Count) { throw "Missing value for --skills" }
+      $skillsCsv = $Items[$i + 1]
+      $i += 2
+      continue
+    }
+    if ($Items[$i] -in @("--help", "-help", "-h")) {
+      "Usage: skillkit.ps1 install-external [--skills all|skill1,skill2,...]"
+      ""
+      "Installs external skills from actively maintained GitHub repositories."
+      ""
+      "Available skills:"
+      foreach ($skill in $ExternalSkills.Keys | Sort-Object) {
+        $data = $ExternalSkills[$skill]
+        "  - $skill`: $($data.Description)"
+      }
+      return
+    }
+    throw "Unknown option: $($Items[$i])"
+  }
+
+  $skillsToInstall = if ($skillsCsv -eq "all") { @($ExternalSkills.Keys) } else { @($skillsCsv -split ",") }
+
+  foreach ($skill in $skillsToInstall) {
+    $skill = $skill.Trim()
+    if (-not $ExternalSkills.ContainsKey($skill)) {
+      "Unknown external skill: $skill" | Write-Error
+      continue
+    }
+
+    $data = $ExternalSkills[$skill]
+    "Installing external skill: $skill"
+    "Command: $($data.Command)"
+
+    try {
+      Invoke-Expression $data.Command
+      "Successfully installed: $skill"
+    } catch {
+      "Failed to install $skill`: $_" | Write-Error
+    }
+    ""
+  }
+}
+
 function Invoke-Install {
   param([string[]]$Items)
 
@@ -360,7 +482,9 @@ $rest = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
 switch ($command) {
   "list" { Invoke-List }
   "list-components" { Invoke-ListComponents }
+  "list-external" { Invoke-ListExternal }
   "install" { Invoke-Install -Items $rest }
+  "install-external" { Invoke-InstallExternal -Items $rest }
   "export" { Invoke-Export -Items $rest }
   { $_ -in @("help", "-h", "--help") } { Show-Usage }
   default {

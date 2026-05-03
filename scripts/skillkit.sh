@@ -5,6 +5,28 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MARK_BEGIN="<!-- BEGIN AI SKILLKIT -->"
 MARK_END="<!-- END AI SKILLKIT -->"
 
+# External skill registry - sourced from actively maintained GitHub repos
+# Format: skill_name~source_url~description~install_command
+EXTERNAL_SKILLS_LIST="caveman~grill-me~codeburn~plannotator~context-audit~superpowers~agent-skills"
+
+EXTERNAL_SKILL_caveman="https://github.com/JuliusBrussee/caveman~Ultra-compressed communication mode - 75% token reduction~npx skills add JuliusBrussee/caveman"
+EXTERNAL_SKILL_grill_me="https://github.com/mattpocock/skills~One-question-at-a-time requirement interrogation~npx skills add mattpocock/skills --skill grill-me"
+EXTERNAL_SKILL_codeburn="https://github.com/AgentSeal/CodeBurn~Interactive TUI dashboard for token/cost observability~npm install -g codeburn"
+EXTERNAL_SKILL_plannotator="https://github.com/backnotprop/plannotator~Visual plan and diff review with annotations~curl -s https://plannotator.ai/install.sh | sh"
+EXTERNAL_SKILL_context_audit="https://github.com/sanjeed5/ctxaudit~Context bloat detection and instruction drift monitoring~npm install -g ctxaudit"
+EXTERNAL_SKILL_superpowers="https://github.com/obra/superpowers~Complete TDD and development methodology framework with 20+ production skills~npx skills add obra/superpowers"
+EXTERNAL_SKILL_agent_skills="https://github.com/addyosmani/agent-skills~Production-grade engineering skills from Google's culture~npx skills add addyosmani/agent-skills"
+
+get_external_skill_var() {
+  local skill="$1"
+  local var_name="EXTERNAL_SKILL_${skill//-/_}"
+  printf '%s' "${!var_name:-}"
+}
+
+list_external_skill_names() {
+  printf '%s\n' "$EXTERNAL_SKILLS_LIST" | tr '~' '\n'
+}
+
 usage() {
   cat <<'EOF'
 Portable AI Skillkit
@@ -12,7 +34,9 @@ Portable AI Skillkit
 Commands:
   skillkit.sh list
   skillkit.sh list-components
+  skillkit.sh list-external
   skillkit.sh install [--target PATH] [--skills all|a,b] [--agents all|a,b]
+  skillkit.sh install-external [--skills caveman,grill-me,codeburn,plannotator,context-audit,superpowers,agent-skills]
   skillkit.sh export --output PATH [--skills all|a,b]
 
 Agents:
@@ -20,8 +44,9 @@ Agents:
 
 Examples:
   ./scripts/install.sh --target ~/repo
-  ./scripts/install.sh --target ~/repo --skills grill-me,caveman
+  ./scripts/install.sh --target ~/repo --skills control-first,pi-coding-agent
   ./scripts/install.sh --target ~/repo --agents codex,claude
+  ./scripts/install-external.sh --skills caveman,grill-me
 EOF
 }
 
@@ -126,7 +151,7 @@ update_block() {
   rm -f "$tmp"
 }
 
-write_shared_index() {
+  write_shared_index() {
   local target="$1"
   shift
   local skills=("$@")
@@ -146,8 +171,19 @@ write_shared_index() {
     printf '\n## Usage\n\n'
     printf 'When the user names one of the active skills, follow its instructions from `.ai/skillkit/skills/<skill>.md`.\n'
     printf 'For normal coding work, default to `control-first` when it is installed.\n'
-    printf 'Use `grill-me` only when unclear requirements would make implementation risky.\n'
-    printf 'Use `caveman` when the user wants terse output or token discipline.\n'
+    printf '\n## External Skills (Install Separately)\n\n'
+    printf 'The following skills are sourced from actively maintained external repositories:\n\n'
+    printf '- `caveman`: Ultra-compressed communication (JuliusBrussee/caveman)\n'
+    printf '  Install: npx skills add JuliusBrussee/caveman\n\n'
+    printf '- `grill-me`: One-question-at-a-time requirement interrogation (mattpocock/skills)\n'
+    printf '  Install: npx skills add mattpocock/skills --skill grill-me\n\n'
+    printf '- `codeburn`: Token/cost observability dashboard (AgentSeal/CodeBurn)\n'
+    printf '  Install: npm install -g codeburn\n\n'
+    printf '- `plannotator`: Visual plan/diff review (backnotprop/plannotator)\n'
+    printf '  Install: curl -s https://plannotator.ai/install.sh | sh\n\n'
+    printf '- `context-audit`: Context bloat detection (sanjeed5/ctxaudit)\n'
+    printf '  Install: npm install -g ctxaudit\n\n'
+    printf 'Run `./scripts/install-external.sh` to install all external skills.\n'
   } > "$index"
 }
 
@@ -236,6 +272,95 @@ cmd_list_components() {
   all_components | while IFS= read -r component; do
     printf '%s\tcomponents/%s.md\n' "$component" "$component"
   done
+}
+
+list_external_skills() {
+  local skill
+  list_external_skill_names | while IFS= read -r skill; do
+    local data
+    data=$(get_external_skill_var "$skill")
+    local url="${data%%~*}"
+    local rest="${data#*~}"
+    local desc="${rest%%~*}"
+    printf '%s\t%s\t%s\n' "$skill" "$desc" "$url"
+  done | sort
+}
+
+cmd_list_external() {
+  printf 'External Skills (sourced from GitHub):\n\n'
+  list_external_skills | while IFS=$'\t' read -r skill desc url; do
+    printf '  %s\n' "$skill"
+    printf '    Description: %s\n' "$desc"
+    printf '    Source: %s\n' "$url"
+    printf '\n'
+  done
+}
+
+install_external_skill() {
+  local skill="$1"
+  local data
+  
+  data=$(get_external_skill_var "$skill")
+  if [[ -z "$data" ]]; then
+    printf 'Unknown external skill: %s\n' "$skill" >&2
+    printf 'Run "skillkit.sh list-external" to see available skills\n' >&2
+    return 1
+  fi
+  
+  local url="${data%%~*}"
+  local rest="${data#*~}"
+  local desc="${rest%%~*}"
+  local cmd="${rest##*~}"
+  
+  printf 'Installing external skill: %s\n' "$skill"
+  printf 'Source: %s\n' "$url"
+  printf 'Command: %s\n' "$cmd"
+  
+  eval "$cmd" || {
+    printf 'Failed to install %s\n' "$skill" >&2
+    return 1
+  }
+  
+  printf 'Successfully installed: %s\n' "$skill"
+}
+
+cmd_install_external() {
+  local skills_csv="all"
+  
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --skills)
+        skills_csv="$2"
+        shift 2
+        ;;
+      -h|--help)
+        printf 'Usage: skillkit.sh install-external [--skills all|skill1,skill2,...]\n' >&2
+        printf '\nInstalls external skills from actively maintained GitHub repositories.\n' >&2
+        printf '\nAvailable skills:\n' >&2
+        list_external_skills | while IFS=$'\t' read -r skill desc url; do
+          printf '  - %s: %s\n' "$skill" "$desc" >&2
+        done
+        exit 0
+        ;;
+      *)
+        printf 'Unknown option: %s\n' "$1" >&2
+        exit 1
+        ;;
+    esac
+  done
+  
+  if [[ "$skills_csv" == "all" ]]; then
+    local skill
+    list_external_skill_names | while IFS= read -r skill; do
+      install_external_skill "$skill"
+      printf '\n'
+    done
+  else
+    local skill
+    printf '%s\n' "$skills_csv" | tr ',' '\n' | while IFS= read -r skill; do
+      [[ -n "$skill" ]] && install_external_skill "$skill"
+    done
+  fi
 }
 
 cmd_install() {
@@ -358,7 +483,9 @@ main() {
   case "$command" in
     list) cmd_list "$@" ;;
     list-components) cmd_list_components "$@" ;;
+    list-external) cmd_list_external "$@" ;;
     install) cmd_install "$@" ;;
+    install-external) cmd_install_external "$@" ;;
     export) cmd_export "$@" ;;
     help|-h|--help) usage ;;
     *)
