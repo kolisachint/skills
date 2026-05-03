@@ -18,11 +18,17 @@ irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex
 
 **With filters:**
 ```bash
-# Internal skills only (fast, no external deps)
+# macOS / Linux — internal skills only (fast, no external deps)
 curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --source internal
 
-# Only workflow components for Codex
+# macOS / Linux — only workflow components for Codex
 curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --category workflow --agent-target codex
+
+# Windows — internal skills only
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex ; .\install.ps1 --target C:\code\repo --source internal
+
+# Windows — only workflow components for Codex
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex ; .\install.ps1 --target C:\code\repo --category workflow --agent-target codex
 ```
 
 ### Option 2: Bootstrap from Favorites
@@ -30,41 +36,67 @@ curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh 
 Curate your most-used components in `favorites.tsv`, then batch-install:
 
 ```bash
-# Install everything tagged "daily-driver" or "critical"
+# macOS / Linux — install everything tagged "daily-driver" or "critical"
 ./scripts/skillkit.sh install --target ~/repo --from favorites.tsv --tag daily-driver,critical
 
-# Install all favorites (no tag filter)
+# macOS / Linux — install all favorites (no tag filter)
 ./scripts/skillkit.sh install --target ~/repo --from favorites.tsv
 
-# Or use Make
+# macOS / Linux — via Make
 make bootstrap-ai TARGET=~/repo
+
+# Windows — install everything tagged "daily-driver" or "critical"
+.\scripts\skillkit.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver,critical
+
+# Windows — install all favorites (no tag filter)
+.\scripts\skillkit.ps1 install --target C:\code\repo --from favorites.tsv
 ```
 
 ### Option 3: Manual Install (one at a time)
 
+**1. Clone**
 ```bash
-# 1. Clone
-git clone https://github.com/kolisachint/skills.git
-cd skills
+git clone https://github.com/kolisachint/skills.git && cd skills
+```
 
-# 2. Install specific component(s) by name (deliberate, one at a time)
+**2. Install a specific component by name**
+```bash
+# macOS / Linux
 ./scripts/skillkit.sh install --target ~/repo --skill control-first
+
+# Windows
+.\scripts\skillkit.ps1 install --target C:\code\repo --skill control-first
+```
+
+**3. Install multiple components by name**
+```bash
+# macOS / Linux
 ./scripts/skillkit.sh install --target ~/repo --skill control-first,local-inference
 
-# 3. Or install with filters
+# Windows
+.\scripts\skillkit.ps1 install --target C:\code\repo --skill control-first,local-inference
+```
+
+**4. Install with filters**
+```bash
+# macOS / Linux
 ./scripts/skillkit.sh install --target ~/repo --category workflow
 ./scripts/skillkit.sh install --target ~/repo --platform pi
 ./scripts/skillkit.sh install --target ~/repo --agent-target codex
 
-# 4. Install everything
-./scripts/skillkit.sh install --target ~/repo
+# Windows
+.\scripts\skillkit.ps1 install --target C:\code\repo --category workflow
+.\scripts\skillkit.ps1 install --target C:\code\repo --platform pi
+.\scripts\skillkit.ps1 install --target C:\code\repo --agent-target codex
 ```
 
-**Windows manual:**
-```powershell
-git clone https://github.com/kolisachint/skills.git
-cd skills
-.\scripts\skillkit.ps1 install --target C:\code\repo --skill control-first
+**5. Install everything**
+```bash
+# macOS / Linux
+./scripts/skillkit.sh install --target ~/repo
+
+# Windows
+.\scripts\skillkit.ps1 install --target C:\code\repo
 ```
 
 ---
@@ -72,23 +104,25 @@ cd skills
 ## Discover & Search
 
 ```bash
-# List all components grouped by category & source
+# macOS / Linux
 ./scripts/skillkit.sh list
-
-# List categories only
 ./scripts/skillkit.sh list-categories
-
-# List platforms and their component counts
 ./scripts/skillkit.sh list-platforms
-
-# Search by keyword (name, description, category, agent target)
 ./scripts/skillkit.sh search review
 ./scripts/skillkit.sh search codex
 ./scripts/skillkit.sh search debug
-
-# Top-N starred external components
 ./scripts/skillkit.sh top        # default top 10
 ./scripts/skillkit.sh top 5      # top 5 only
+
+# Windows
+.\scripts\skillkit.ps1 list
+.\scripts\skillkit.ps1 list-categories
+.\scripts\skillkit.ps1 list-platforms
+.\scripts\skillkit.ps1 search review
+.\scripts\skillkit.ps1 search codex
+.\scripts\skillkit.ps1 search debug
+.\scripts\skillkit.ps1 top
+.\scripts\skillkit.ps1 top 5
 ```
 
 ## Curated Components
