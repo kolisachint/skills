@@ -4,24 +4,52 @@ Curated components for coding agents, organized by how you use them, where you u
 
 ## Quick Start
 
+### One-liner (no clone)
+
+```bash
+# macOS / Linux — install a specific skill directly into current directory
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- caveman
+
+# Or install multiple skills
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- caveman,grill-me
+
+# With explicit target
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --skill caveman
+```
+
+**Windows:**
+```powershell
+# Install a specific skill directly into current directory
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex -caveman
+
+# Or with explicit target
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex -target C:\code\repo -skill caveman
+```
+
+### Git clone + install
+
 ```bash
 # 1. Clone
 git clone https://github.com/kolisachint/skills.git && cd skills
 
-# 2. Install a specific skill
-./install.sh --target ~/repo --skill caveman
+# 2. Install a specific skill (defaults to current directory)
+./install.sh caveman
 
-# 3. Or install by category
+# 3. Or install multiple skills
+./install.sh caveman grill-me
+
+# 4. Or install by category
 ./install.sh --target ~/repo --category workflow
 
-# 4. Or install everything in the catalog
+# 5. Or install everything in the catalog
 ./install.sh --target ~/repo
 ```
 
 **Windows:**
 ```powershell
 git clone https://github.com/kolisachint/skills.git; cd skills
-.\install.ps1 --target C:\code\repo --skill caveman
+.\install.ps1 caveman
+.\install.ps1 caveman, grill-me
 .\install.ps1 --target C:\code\repo --category workflow
 .\install.ps1 --target C:\code\repo
 ```

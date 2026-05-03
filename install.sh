@@ -19,20 +19,25 @@ Commands:
   install.sh top [N]                       Show top-N starred components
   install.sh --target PATH         Install all catalog components
   install.sh --target PATH --skill NAME          Install specific component(s)
-  install.sh --target PATH --category CATEGORY   Install by category
-  install.sh --target PATH --platform PLATFORM   Install by platform
-  install.sh --target PATH --agent-target AGENT  Install by agent target
-  install.sh --target PATH --from FILE           Install from favorites file
-  install.sh --target PATH --from FILE --tag TAG Install favorites matching tags
-  install.sh export --output PATH          Export portable bundle
+  install.sh --category CATEGORY     Install by category (target defaults to .)
+  install.sh --platform PLATFORM     Install by platform (target defaults to .)
+  install.sh --agent-target AGENT    Install by agent target (target defaults to .)
+  install.sh --from FILE             Install from favorites file (target defaults to .)
+  install.sh --from FILE --tag TAG   Install favorites matching tags
+  install.sh export --output PATH    Export portable bundle
+
+  install.sh SKILL                   Install one skill to current directory
+  install.sh SKILL1 SKILL2 ...       Install multiple skills to current directory
 
 Examples:
-  ./scripts/install.sh list
-  ./scripts/install.sh search review
-  ./scripts/install.sh --target ~/repo --skill caveman
-  ./scripts/install.sh --target ~/repo --skill caveman,grill-me
-  ./scripts/install.sh --target ~/repo --from favorites.tsv --tag daily-driver
-  ./scripts/install.sh --target ~/repo --category workflow
+  ./install.sh caveman                        # one-liner: install skill to .
+  ./install.sh caveman grill-me               # install multiple skills to .
+  ./install.sh list
+  ./install.sh search review
+  ./install.sh --target ~/repo --skill caveman
+  ./install.sh --target ~/repo --skill caveman,grill-me
+  ./install.sh --target ~/repo --from favorites.tsv --tag daily-driver
+  ./install.sh --target ~/repo --category workflow
 EOF
 }
 
@@ -117,9 +122,9 @@ cmd_list() {
     printf '\n'
   done < <(catalog_get_unique 2)
 
-  printf 'Install one:     ./scripts/install.sh --target ~/repo --skill <name>\n'
-  printf 'Install by cat:  ./scripts/install.sh --target ~/repo --category <cat>\n'
-  printf 'Install all:     ./scripts/install.sh --target ~/repo\n\n'
+  printf 'Install one:     ./install.sh <skill-name>\n'
+  printf 'Install by cat:  ./install.sh --category <cat>\n'
+  printf 'Install all:     ./install.sh --target ~/repo\n\n'
 }
 
 cmd_list_categories() {
@@ -193,8 +198,8 @@ cmd_search() {
   if [[ -z "$results" ]]; then
     printf 'No components match "%s".\n\n' "$query"
     printf 'Try:\n'
-    printf '  ./scripts/install.sh list    to see all components\n'
-    printf '  ./scripts/install.sh top 5   to see top starred skills\n\n'
+    printf '  ./install.sh list    to see all components\n'
+    printf '  ./install.sh top 5   to see top starred skills\n\n'
     return 0
   fi
 
@@ -223,7 +228,7 @@ cmd_search() {
     }
   '
 
-  printf '\nInstall: ./scripts/install.sh --target ~/repo --skill <name>\n\n'
+  printf '\nInstall: ./install.sh <skill-name>\n\n'
 }
 
 cmd_top() {
@@ -349,9 +354,7 @@ cmd_install() {
   fi
 
   if [[ -z "$target" ]]; then
-    printf 'Error: --target is required\n' >&2
-    usage >&2
-    exit 1
+    target="."
   fi
 
   mkdir -p "$target"
@@ -455,8 +458,8 @@ cmd_export() {
   printf 'Exporting Portable AI Skillkit to %s\n' "$output"
 
   cp "$CATALOG" "$output/catalog.tsv"
-  cp "$ROOT/scripts/install.sh" "$output/"
-  cp "$ROOT/scripts/skillkit.ps1" "$output/"
+  cp "$ROOT/install.sh" "$output/"
+  cp "$ROOT/install.ps1" "$output/"
 
   for doc in README.md AGENTS.md PHILOSOPHY.md MIGRATION.md; do
     if [[ -f "$ROOT/$doc" ]]; then
@@ -471,9 +474,20 @@ cmd_export() {
 # Main dispatcher
 # ---------------------------------------------------------------------------
 
+KNOWN_COMMANDS="list list-categories list-platforms search top install export"
+
 # If first argument is a flag (starts with --), default to install command
 if [[ "${1:-}" == --* ]]; then
   set -- install "$@"
+# If first argument is not a known command, treat remaining positional args as skill names
+elif [[ -n "${1:-}" ]] && ! echo "$KNOWN_COMMANDS" | grep -qw "$1"; then
+  skills="$1"
+  shift
+  while [[ $# -gt 0 ]] && [[ "$1" != --* ]]; do
+    skills="$skills,$1"
+    shift
+  done
+  set -- install --skill "$skills" "$@"
 fi
 
 case "${1:-}" in

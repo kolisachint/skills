@@ -15,14 +15,19 @@ Commands:
   .\install.ps1 top [N]                       Show top-N starred components
   .\install.ps1 --target PATH         Install all catalog components
   .\install.ps1 --target PATH --skill NAME          Install specific component(s)
-  .\install.ps1 --target PATH --category CATEGORY   Install by category
-  .\install.ps1 --target PATH --platform PLATFORM   Install by platform
-  .\install.ps1 --target PATH --agent-target AGENT  Install by agent target
-  .\install.ps1 --target PATH --from FILE           Install from favorites file
-  .\install.ps1 --target PATH --from FILE --tag TAG Install favorites matching tags
-  .\install.ps1 export --output PATH          Export portable bundle
+  .\install.ps1 --category CATEGORY     Install by category (target defaults to .)
+  .\install.ps1 --platform PLATFORM     Install by platform (target defaults to .)
+  .\install.ps1 --agent-target AGENT    Install by agent target (target defaults to .)
+  .\install.ps1 --from FILE             Install from favorites file (target defaults to .)
+  .\install.ps1 --from FILE --tag TAG   Install favorites matching tags
+  .\install.ps1 export --output PATH    Export portable bundle
+
+  .\install.ps1 SKILL                   Install one skill to current directory
+  .\install.ps1 SKILL1, SKILL2, ...     Install multiple skills to current directory
 
 Examples:
+  .\install.ps1 caveman                        # one-liner: install skill to .
+  .\install.ps1 caveman, grill-me              # install multiple skills to .
   .\install.ps1 list
   .\install.ps1 search review
   .\install.ps1 --target C:\code\repo --skill caveman
@@ -321,9 +326,7 @@ function Cmd-Install {
   }
 
   if (-not $Target) {
-    Write-Error "--target is required"
-    Show-Usage
-    exit 1
+    $Target = "."
   }
 
   # Resolve favorites to catalog entries
@@ -414,7 +417,7 @@ function Cmd-Export {
   Write-Host "Exporting Portable AI Skillkit to $Output"
 
   Copy-Item -Path $Catalog -Destination (Join-Path $Output "catalog.tsv") -Force
-  Copy-Item -Path (Join-Path $Root "skillkit.sh") -Destination $Output -Force -ErrorAction SilentlyContinue
+  Copy-Item -Path (Join-Path $Root "install.sh") -Destination $Output -Force -ErrorAction SilentlyContinue
   Copy-Item -Path (Join-Path $Root "install.ps1") -Destination $Output -Force -ErrorAction SilentlyContinue
 
   foreach ($doc in @("README.md", "AGENTS.md", "PHILOSOPHY.md", "MIGRATION.md")) {
@@ -434,9 +437,27 @@ function Cmd-Export {
 $command = $args[0]
 $remaining = $args[1..$args.Length]
 
+$knownCommands = @("list", "list-categories", "list-platforms", "search", "top", "install", "export")
+
 # If first argument is a flag (starts with --), default to install command
 if ($command -match '^--') {
   $remaining = $args
+  $command = "install"
+}
+# If first argument is not a known command, treat positional args as skill names
+elseif ($command -and $knownCommands -notcontains $command) {
+  $skills = $command
+  $remaining = @()
+  $foundFlag = $false
+  for ($i = 1; $i -lt $args.Length; $i++) {
+    if ($args[$i] -match '^--') {
+      $remaining = $args[$i..$args.Length]
+      $foundFlag = $true
+      break
+    }
+    $skills += ",$($args[$i])"
+  }
+  $remaining = @("--skill", $skills) + $remaining
   $command = "install"
 }
 
