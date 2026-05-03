@@ -29,6 +29,11 @@ Commands:
   install.sh SKILL                   Install one skill to current directory
   install.sh SKILL1 SKILL2 ...       Install multiple skills to current directory
 
+  install.sh remove SKILL            Remove installed skill(s)
+  install.sh remove SKILL1 SKILL2 ... Remove multiple skills
+  install.sh installed               List installed skills in target directory
+  install.sh update [SKILL]          Update installed skills (all if no skill given)
+
 Examples:
   ./install.sh caveman                        # one-liner: install skill to .
   ./install.sh caveman grill-me               # install multiple skills to .
@@ -38,7 +43,23 @@ Examples:
   ./install.sh --target ~/repo --skill caveman,grill-me
   ./install.sh --target ~/repo --from favorites.tsv --tag daily-driver
   ./install.sh --target ~/repo --category workflow
+
+  ./install.sh remove caveman                 # remove a skill
+  ./install.sh remove caveman grill-me        # remove multiple skills
+  ./install.sh installed                      # list installed skills
+  ./install.sh update                         # update all skills
+  ./install.sh update caveman                 # update a specific skill
 EOF
+}
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+normalize_skill_filter() {
+  local input="$1"
+  # Replace commas with spaces, collapse multiple spaces, trim, replace spaces with commas
+  echo "$input" | tr ',' ' ' | tr -s ' ' | sed 's/^ *//;s/ *$//' | tr ' ' ','
 }
 
 # ---------------------------------------------------------------------------
@@ -347,6 +368,8 @@ cmd_install() {
     esac
   done
 
+  skill_filter=$(normalize_skill_filter "$skill_filter")
+
   if [[ -n "$tag_filter" && -z "$from_file" ]]; then
     printf 'Error: --tag requires --from <favorites-file>\n' >&2
     usage >&2
@@ -434,7 +457,7 @@ cmd_install() {
     printf '  → %s (%s)\n' "$name" "$description"
     printf '    %s\n' "$cmd"
 
-    if (cd "$target" && eval "$cmd"); then
+    if (cd "$target" && eval "$cmd" < /dev/null); then
       printf '  ✓ %s installed\n\n' "$name"
     else
       printf '  ⚠ %s installation failed (non-fatal)\n\n' "$name" >&2
@@ -443,6 +466,177 @@ cmd_install() {
 
   printf '✓ Installation complete\n'
   printf '  npx skills manages .agents/skills/ and platform symlinks automatically.\n'
+}
+
+# ---------------------------------------------------------------------------
+# Remove command
+# ---------------------------------------------------------------------------
+
+cmd_remove() {
+  local target=""
+  local skill_filter=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target) target="$2"; shift 2 ;;
+      --skill) skill_filter="$2"; shift 2 ;;
+      -*)
+        printf 'Error: unknown flag %s\n' "$1" >&2
+        usage >&2
+        exit 1
+        ;;
+      *)
+        if [[ -z "$skill_filter" ]]; then
+          skill_filter="$1"
+        else
+          skill_filter="$skill_filter,$1"
+        fi
+        shift ;;
+    esac
+  done
+
+  skill_filter=$(normalize_skill_filter "$skill_filter")
+
+  if [[ -z "$skill_filter" ]]; then
+    printf 'Error: remove requires a SKILL name\n' >&2
+    usage >&2
+    exit 1
+  fi
+
+  if [[ -z "$target" ]]; then
+    target="."
+  fi
+
+  mkdir -p "$target"
+  target="$(cd "$target" && pwd)"
+
+  printf 'Removing skills from %s\n' "$target"
+
+  local name remove_cmd
+  while IFS=$'\t' read -r name remove_cmd; do
+    [[ -z "$name" ]] && continue
+
+    if [[ -z "$remove_cmd" || "$remove_cmd" == "-" ]]; then
+      local install_cmd
+      install_cmd=$(awk -F'\t' -v n="$name" '$1==n {print $7; exit}' "$CATALOG")
+      if [[ "$install_cmd" == "npx skills add"* ]]; then
+        remove_cmd="npx skills remove $name --yes"
+      elif [[ "$install_cmd" == "npm install -g"* ]]; then
+        local pkg="${install_cmd#npm install -g }"
+        pkg="${pkg#"${pkg%%[![:space:]]*}"}"
+        pkg="${pkg%"${pkg##*[![:space:]]}"}"
+        remove_cmd="npm uninstall -g $pkg"
+      elif [[ "$install_cmd" == "npm install "* ]]; then
+        local pkg="${install_cmd#npm install }"
+        pkg="${pkg#"${pkg%%[![:space:]]*}"}"
+        pkg="${pkg%"${pkg##*[![:space:]]}"}"
+        remove_cmd="npm uninstall $pkg"
+      elif [[ "$install_cmd" == "pi install npm:"* ]]; then
+        local pkg="${install_cmd#pi install }"
+        pkg="${pkg#"${pkg%%[![:space:]]*}"}"
+        pkg="${pkg%"${pkg##*[![:space:]]}"}"
+        remove_cmd="pi remove $pkg"
+      else
+        printf '  ⚠ %s: no remove command and cannot derive one\n' "$name" >&2
+        continue
+      fi
+    fi
+
+    printf '  → %s\n' "$name"
+    printf '    %s\n' "$remove_cmd"
+
+    if (cd "$target" && eval "$remove_cmd" < /dev/null); then
+      printf '  ✓ %s removed\n\n' "$name"
+    else
+      printf '  ⚠ %s removal failed (non-fatal)\n\n' "$name" >&2
+    fi
+  done < <(awk -F'\t' -v skill="$skill_filter" '
+    BEGIN { split(skill, skill_arr, ",") }
+    /^#/ {next}
+    $1=="name" {next}
+    NF>=6 {
+      for (i in skill_arr) {
+        if ($1 == skill_arr[i]) {
+          print $1"\t"(NF>=9 ? $9 : "")
+          break
+        }
+      }
+    }
+  ' "$CATALOG")
+
+  printf '✓ Removal complete\n'
+}
+
+# ---------------------------------------------------------------------------
+# Installed command
+# ---------------------------------------------------------------------------
+
+cmd_installed() {
+  local target="."
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target) target="$2"; shift 2 ;;
+      *) shift ;;
+    esac
+  done
+
+  mkdir -p "$target"
+  target="$(cd "$target" && pwd)"
+
+  printf 'Installed skills in %s:\n\n' "$target"
+  (cd "$target" && npx skills list) || printf '  (no skills found or npx skills not available)\n'
+}
+
+# ---------------------------------------------------------------------------
+# Update command
+# ---------------------------------------------------------------------------
+
+cmd_update() {
+  local target=""
+  local skill_filter=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --target) target="$2"; shift 2 ;;
+      --skill) skill_filter="$2"; shift 2 ;;
+      -*)
+        printf 'Error: unknown flag %s\n' "$1" >&2
+        usage >&2
+        exit 1
+        ;;
+      *)
+        if [[ -z "$skill_filter" ]]; then
+          skill_filter="$1"
+        else
+          skill_filter="$skill_filter,$1"
+        fi
+        shift ;;
+    esac
+  done
+
+  skill_filter=$(normalize_skill_filter "$skill_filter")
+
+  if [[ -z "$target" ]]; then
+    target="."
+  fi
+
+  mkdir -p "$target"
+  target="$(cd "$target" && pwd)"
+
+  printf 'Updating skills in %s\n' "$target"
+
+  local cmd="npx skills update"
+  if [[ -n "$skill_filter" ]]; then
+    local skills="${skill_filter//,/ }"
+    cmd="$cmd $skills"
+  fi
+
+  if (cd "$target" && eval "$cmd"); then
+    printf '✓ Update complete\n'
+  else
+    printf '  ⚠ update failed (non-fatal)\n' >&2
+  fi
 }
 
 # ---------------------------------------------------------------------------
@@ -486,7 +680,7 @@ cmd_export() {
 # Main dispatcher
 # ---------------------------------------------------------------------------
 
-KNOWN_COMMANDS="list list-categories list-platforms search top install export"
+KNOWN_COMMANDS="list list-categories list-platforms search top install export remove installed update"
 
 # If first argument is a flag (starts with --), default to install command
 if [[ "${1:-}" == --* ]]; then
@@ -530,6 +724,18 @@ case "${1:-}" in
   export)
     shift
     cmd_export "$@"
+    ;;
+  remove)
+    shift
+    cmd_remove "$@"
+    ;;
+  installed)
+    shift
+    cmd_installed "$@"
+    ;;
+  update)
+    shift
+    cmd_update "$@"
     ;;
   *)
     usage >&2

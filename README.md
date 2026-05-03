@@ -95,6 +95,24 @@ make bootstrap-ai TARGET=~/repo
 .\install.ps1 top 5
 ```
 
+## Manage Skills
+
+```bash
+# macOS / Linux
+./install.sh installed                  # list what's installed
+./install.sh remove caveman             # remove a skill
+./install.sh remove caveman grill-me    # remove multiple
+./install.sh update                     # update all skills
+./install.sh update caveman             # update one skill
+
+# Windows
+.\install.ps1 installed
+.\install.ps1 remove caveman
+.\install.ps1 remove caveman, grill-me
+.\install.ps1 update
+.\install.ps1 update caveman
+```
+
 ## Curated Components
 
 ### ⚡ Workflows

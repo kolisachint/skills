@@ -1,7 +1,7 @@
-name	category	source	platforms	agent_target	description	install_command	stars
-superpowers	workflow	external	all	all	Complete TDD and development methodology framework with 20+ production skills	npx skills add obra/superpowers --yes	90K
-agent-skills	skill	external	all	all	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills --yes	20K+
-caveman	command	external	all	all	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman --yes	52K
-grill-me	command	external	all	all	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me --yes	31K
-plannotator	command	external	pi	all	Visual plan and diff review with annotations	pi install npm:@plannotator/pi-extension	5K
-codeburn	tool	external	all	all	Interactive TUI dashboard for token/cost observability	npm install codeburn	4.6K
+name	category	source	platforms	agent_target	description	install_command	stars	remove_command
+superpowers	workflow	external	all	all	Complete TDD and development methodology framework with 20+ production skills	npx skills add obra/superpowers --yes	90K	npx skills remove superpowers --yes
+agent-skills	skill	external	all	all	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills --yes	20K+	npx skills remove agent-skills --yes
+caveman	command	external	all	all	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman --yes	52K	npx skills remove caveman --yes
+grill-me	command	external	all	all	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me --yes	31K	npx skills remove grill-me --yes
+plannotator	command	external	pi	all	Visual plan and diff review with annotations	pi install npm:@plannotator/pi-extension	5K	pi remove npm:@plannotator/pi-extension
+codeburn	tool	external	all	all	Interactive TUI dashboard for token/cost observability	npm install -g codeburn	4.6K	npm uninstall -g codeburn

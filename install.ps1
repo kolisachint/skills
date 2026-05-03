@@ -25,6 +25,11 @@ Commands:
   .\install.ps1 SKILL                   Install one skill to current directory
   .\install.ps1 SKILL1, SKILL2, ...     Install multiple skills to current directory
 
+  .\install.ps1 remove SKILL            Remove installed skill(s)
+  .\install.ps1 remove SKILL1, SKILL2   Remove multiple skills
+  .\install.ps1 installed               List installed skills
+  .\install.ps1 update [SKILL]          Update installed skills
+
 Examples:
   .\install.ps1 caveman                        # one-liner: install skill to .
   .\install.ps1 caveman, grill-me              # install multiple skills to .
@@ -34,6 +39,12 @@ Examples:
   .\install.ps1 --target C:\code\repo --skill caveman,grill-me
   .\install.ps1 --target C:\code\repo --from favorites.tsv --tag daily-driver
   .\install.ps1 --target C:\code\repo --category workflow
+
+  .\install.ps1 remove caveman                 # remove a skill
+  .\install.ps1 remove caveman, grill-me       # remove multiple skills
+  .\install.ps1 installed                      # list installed skills
+  .\install.ps1 update                         # update all skills
+  .\install.ps1 update caveman                 # update a specific skill
 "@
 }
 
@@ -54,9 +65,35 @@ function Read-Catalog {
         Description = $fields[5]
         InstallCommand = if ($fields.Length -ge 7) { $fields[6] } else { "" }
         Stars = if ($fields.Length -ge 8) { $fields[7] } else { "" }
+        RemoveCommand = if ($fields.Length -ge 9) { $fields[8] } else { "" }
       }
     }
   }
+}
+
+function Parse-Args {
+  param([array]$RawArgs)
+  $positional = @()
+  $flags = @{}
+  $i = 0
+  while ($i -lt $RawArgs.Length) {
+    if ($RawArgs[$i] -match '^--') {
+      $key = $RawArgs[$i]
+      $val = if ($i + 1 -lt $RawArgs.Length -and $RawArgs[$i+1] -notmatch '^--') { $RawArgs[++$i] } else { "" }
+      $flags[$key] = $val
+    } else {
+      $positional += $RawArgs[$i]
+    }
+    $i++
+  }
+  return @{ Positional = $positional; Flags = $flags }
+}
+
+function Normalize-SkillFilter {
+  param([string]$Input)
+  if (-not $Input) { return "" }
+  $normalized = $Input -replace ',', ' ' -replace '\s+', ' ' -replace '^\s+|\s+$', '' -replace ' ', ','
+  return $normalized
 }
 
 function Filter-Catalog {
@@ -319,6 +356,8 @@ function Cmd-Install {
     [string]$TagFilter = ""
   )
 
+  $SkillFilter = Normalize-SkillFilter -Input $SkillFilter
+
   if ($TagFilter -and -not $FromFile) {
     Write-Error "--tag requires --from <favorites-file>"
     Show-Usage
@@ -407,6 +446,143 @@ function Cmd-Install {
 }
 
 # ---------------------------------------------------------------------------
+# Remove command
+# ---------------------------------------------------------------------------
+
+function Cmd-Remove {
+  param(
+    [string]$Target = "",
+    [string]$SkillFilter = ""
+  )
+
+  $SkillFilter = Normalize-SkillFilter -Input $SkillFilter
+
+  if (-not $Target) { $Target = "." }
+  if (-not $SkillFilter) {
+    Write-Error "remove requires a SKILL name"
+    Show-Usage
+    exit 1
+  }
+
+  New-Item -ItemType Directory -Path $Target -Force | Out-Null
+  $Target = (Resolve-Path $Target).Path
+
+  Write-Host "Removing skills from $Target"
+
+  $skills = $SkillFilter -split ","
+  $catalog = Read-Catalog
+
+  foreach ($skillName in $skills) {
+    $comp = $catalog | Where-Object { $_.Name -eq $skillName } | Select-Object -First 1
+    if (-not $comp) {
+      Write-Warning "  ⚠ $skillName : not found in catalog, skipping"
+      continue
+    }
+
+    $removeCmd = $comp.RemoveCommand
+    if (-not $removeCmd -or $removeCmd -eq "-") {
+      $installCmd = $comp.InstallCommand
+      if ($installCmd -match '^npx skills add') {
+        $removeCmd = "npx skills remove $skillName --yes"
+      } elseif ($installCmd -match '^npm\s+install\s+-g\s+(.+)$') {
+        $pkg = $matches[1].Trim()
+        $removeCmd = "npm uninstall -g $pkg"
+      } elseif ($installCmd -match '^npm\s+install\s+(.+)$') {
+        $pkg = $matches[1].Trim()
+        $removeCmd = "npm uninstall $pkg"
+      } elseif ($installCmd -match '^pi\s+install\s+(.+)$') {
+        $pkg = $matches[1].Trim()
+        $removeCmd = "pi remove $pkg"
+      } else {
+        Write-Warning "  ⚠ $skillName : no remove command and cannot derive one, skipping"
+        continue
+      }
+    }
+
+    Write-Host "  → $skillName"
+    Write-Host "    $removeCmd"
+
+    try {
+      $origDir = Get-Location
+      Set-Location $Target
+      Invoke-Expression $removeCmd
+      Set-Location $origDir
+      Write-Host "  ✓ $skillName removed"
+      Write-Host ""
+    }
+    catch {
+      Set-Location $origDir
+      Write-Warning "  ⚠ $skillName removal failed (non-fatal): $_"
+      Write-Host ""
+    }
+  }
+
+  Write-Host "✓ Removal complete"
+}
+
+# ---------------------------------------------------------------------------
+# Installed command
+# ---------------------------------------------------------------------------
+
+function Cmd-Installed {
+  param([string]$Target = "")
+
+  if (-not $Target) { $Target = "." }
+  New-Item -ItemType Directory -Path $Target -Force | Out-Null
+  $Target = (Resolve-Path $Target).Path
+
+  Write-Host "Installed skills in $Target:"
+  Write-Host ""
+
+  try {
+    $origDir = Get-Location
+    Set-Location $Target
+    Invoke-Expression "npx skills list"
+    Set-Location $origDir
+  }
+  catch {
+    Set-Location $origDir
+    Write-Host "  (no skills found or npx skills not available)"
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Update command
+# ---------------------------------------------------------------------------
+
+function Cmd-Update {
+  param(
+    [string]$Target = "",
+    [string]$SkillFilter = ""
+  )
+
+  $SkillFilter = Normalize-SkillFilter -Input $SkillFilter
+
+  if (-not $Target) { $Target = "." }
+  New-Item -ItemType Directory -Path $Target -Force | Out-Null
+  $Target = (Resolve-Path $Target).Path
+
+  Write-Host "Updating skills in $Target"
+
+  try {
+    $origDir = Get-Location
+    Set-Location $Target
+    if ($SkillFilter) {
+      $skills = ($SkillFilter -split "," | ForEach-Object { $_.Trim() }) -join " "
+      Invoke-Expression "npx skills update $skills"
+    } else {
+      Invoke-Expression "npx skills update"
+    }
+    Set-Location $origDir
+    Write-Host "✓ Update complete"
+  }
+  catch {
+    Set-Location $origDir
+    Write-Warning "  ⚠ update failed: $_"
+  }
+}
+
+# ---------------------------------------------------------------------------
 # Export command
 # ---------------------------------------------------------------------------
 
@@ -445,7 +621,7 @@ function Cmd-Export {
 $command = $args[0]
 $remaining = $args[1..$args.Length]
 
-$knownCommands = @("list", "list-categories", "list-platforms", "search", "top", "install", "export")
+$knownCommands = @("list", "list-categories", "list-platforms", "search", "top", "install", "export", "remove", "installed", "update")
 
 # If first argument is a flag (starts with --), default to install command
 if ($command -match '^--') {
@@ -523,6 +699,23 @@ switch ($command) {
       if ($remaining[$i] -eq "--output") { $output = $remaining[++$i] }
     }
     Cmd-Export -Output $output
+  }
+  "remove" {
+    $parsed = Parse-Args $remaining
+    $target = $parsed.Flags["--target"]
+    $skillFilter = if ($parsed.Flags["--skill"]) { $parsed.Flags["--skill"] } else { $parsed.Positional -join "," }
+    Cmd-Remove -Target $target -SkillFilter $skillFilter
+  }
+  "installed" {
+    $parsed = Parse-Args $remaining
+    $target = $parsed.Flags["--target"]
+    Cmd-Installed -Target $target
+  }
+  "update" {
+    $parsed = Parse-Args $remaining
+    $target = $parsed.Flags["--target"]
+    $skillFilter = if ($parsed.Flags["--skill"]) { $parsed.Flags["--skill"] } else { $parsed.Positional -join "," }
+    Cmd-Update -Target $target -SkillFilter $skillFilter
   }
   default {
     Show-Usage
