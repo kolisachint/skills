@@ -2,70 +2,59 @@
 
 Curated components for coding agents, organized by how you use them, where you use them, and who they're for.
 
-## Install in One Line
+## Quick Start
 
-### macOS / Linux (curl — no clone needed)
+### Option 1: One-Line Install (no clone)
 
+**macOS / Linux:**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo
 ```
 
-Or with filters:
+**Windows:**
+```powershell
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex
+```
+
+**With filters:**
 ```bash
-# Internal skills only (no external CLI tools)
+# Internal skills only (fast, no external deps)
 curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --source internal
 
 # Only workflow components for Codex
 curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --category workflow --agent-target codex
 ```
 
-### Windows (PowerShell — no clone needed)
-
-```powershell
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex
-```
-
-### Or clone and run
+### Option 2: Manual Install (clone first)
 
 ```bash
-git clone https://github.com/kolisachint/skills.git /tmp/skills
-bash /tmp/skills/install.sh --target ~/repo
+# 1. Clone
+git clone https://github.com/kolisachint/skills.git
+cd skills
+
+# 2. Install everything to your project
+./install.sh --target ~/repo
+
+# 3. Or install with filters
+./install.sh --target ~/repo --source internal
+./install.sh --target ~/repo --category workflow
+./install.sh --target ~/repo --platform pi
+./install.sh --target ~/repo --agent-target codex
+
+# 4. Or run scripts directly
+./scripts/skillkit.sh install --target ~/repo --source internal --category workflow
+```
+
+**Windows manual:**
+```powershell
+git clone https://github.com/kolisachint/skills.git
+cd skills
+.\install.ps1 --target C:\code\repo
 ```
 
 ---
 
-## Quick Start (already cloned)
-
-### Install everything
-
-```bash
-# macOS / Linux
-./install.sh --target ~/repo
-
-# Windows
-.\install.ps1 --target C:\code\repo
-```
-
-### Install with filters
-
-```bash
-# Only internal components (fast, no external deps)
-./install.sh --target ~/repo --source internal
-
-# Only workflow components
-./install.sh --target ~/repo --category workflow
-
-# Only Pi-compatible components
-./install.sh --target ~/repo --platform pi
-
-# Only Codex-targeted agents/workflows
-./install.sh --target ~/repo --agent-target codex
-
-# Combined: internal workflows for Codex
-./install.sh --target ~/repo --source internal --category workflow --platform codex
-```
-
-### Discover what's available
+## Discover & Search
 
 ```bash
 # List all components grouped by category & source
