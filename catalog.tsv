@@ -11,7 +11,6 @@
 #   workflow  - Structured processes for how you work
 #
 # Source:
-#   internal  - Maintained in this repo (skills/)
 #   external  - Sourced from actively maintained GitHub repos
 #
 # Platforms (comma-separated):
@@ -27,13 +26,6 @@
 #   <name>    - Specific agent or platform target (e.g., codex, copilot, claude, pi, opencode)
 
 name	category	source	platforms	agent_target	description	install_command	stars
-control-first	workflow	internal	all	all	Default control-first coding workflow: clarify, plan, patch, test, review	-	-
-local-inference	skill	internal	all	all	Decide when to route tasks through local inference servers (Ollama/LM Studio)	-	-
-pi-coding-agent	agent	internal	pi	pi	Pi as the thin terminal harness for coding agents	-	-
-codex-reviewer	workflow	internal	codex	codex	Codex-specific code review subagent workflow	-	-
-copilot-pr-agent	agent	internal	copilot	copilot	Copilot custom PR review agent configuration	-	-
-claude-research	prompt	internal	claude	claude	Deep research prompt template for Claude projects	-	-
-opencode-debug	command	internal	opencode	opencode	Debug command for OpenCode with structured logging	-	-
 superpowers	workflow	external	all	all	Complete TDD and development methodology framework with 20+ production skills	npx skills add obra/superpowers --yes	90K
 agent-skills	skill	external	all	all	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills --yes	20K+
 caveman	command	external	all	all	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman --yes	52K

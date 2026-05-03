@@ -18,14 +18,8 @@ irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex
 
 **With filters:**
 ```bash
-# macOS / Linux — internal skills only (fast, no external deps)
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --source internal
-
 # macOS / Linux — only workflow components for Codex
 curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --category workflow --agent-target codex
-
-# Windows — internal skills only
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex ; .\install.ps1 --target C:\code\repo --source internal
 
 # Windows — only workflow components for Codex
 irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex ; .\install.ps1 --target C:\code\repo --category workflow --agent-target codex
@@ -62,19 +56,19 @@ git clone https://github.com/kolisachint/skills.git && cd skills
 **2. Install a specific component by name**
 ```bash
 # macOS / Linux
-./scripts/skillkit.sh install --target ~/repo --skill control-first
+./scripts/skillkit.sh install --target ~/repo --skill caveman
 
 # Windows
-.\scripts\skillkit.ps1 install --target C:\code\repo --skill control-first
+.\scripts\skillkit.ps1 install --target C:\code\repo --skill caveman
 ```
 
 **3. Install multiple components by name**
 ```bash
 # macOS / Linux
-./scripts/skillkit.sh install --target ~/repo --skill control-first,local-inference
+./scripts/skillkit.sh install --target ~/repo --skill caveman,grill-me
 
 # Windows
-.\scripts\skillkit.ps1 install --target C:\code\repo --skill control-first,local-inference
+.\scripts\skillkit.ps1 install --target C:\code\repo --skill caveman,grill-me
 ```
 
 **4. Install with filters**
@@ -129,71 +123,53 @@ git clone https://github.com/kolisachint/skills.git && cd skills
 
 ### ⚡ Workflows
 
-| Name | Source | Platform | Description |
-|------|--------|----------|-------------|
-| **control-first** | internal | all | Default workflow: clarify, plan, patch, test, review |
-| **codex-reviewer** | internal | codex | Codex-specific code review subagent workflow |
-| **superpowers** | external | all | Complete TDD and methodology framework *(90K★)* |
+| Name | Platform | Description |
+|------|----------|-------------|
+| **superpowers** | all | Complete TDD and methodology framework *(90K★)* |
 
 ### 🧠 Skills
 
-| Name | Source | Platform | Description |
-|------|--------|----------|-------------|
-| **local-inference** | internal | all | Route tasks through local inference servers |
-| **agent-skills** | external | all | Production engineering from Google's culture *(20K+★)* |
-
-### 💬 Prompts
-
-| Name | Source | Platform | Description |
-|------|--------|----------|-------------|
-| **claude-research** | internal | claude | Deep research prompt template for Claude |
+| Name | Platform | Description |
+|------|----------|-------------|
+| **agent-skills** | all | Production engineering from Google's culture *(20K+★)* |
 
 ### 🎯 Commands
 
-| Name | Source | Platform | Description |
-|------|--------|----------|-------------|
-| **opencode-debug** | internal | opencode | Debug command with structured logging |
-| **caveman** | external | all | Ultra-compressed communication *(52K★)* |
-| **grill-me** | external | all | One-question-at-a-time interrogation *(31K★)* |
-| **plannotator** | external | all | Visual plan and diff review *(5K★)* |
+| Name | Platform | Description |
+|------|----------|-------------|
+| **caveman** | all | Ultra-compressed communication *(52K★)* |
+| **grill-me** | all | One-question-at-a-time interrogation *(31K★)* |
+| **plannotator** | all | Visual plan and diff review *(5K★)* |
 
 ### 🔧 Tools
 
-| Name | Source | Platform | Description |
-|------|--------|----------|-------------|
-| **codeburn** | external | all | Interactive TUI for token/cost observability *(4.6K★)* |
-| **context-audit** | external | all | Context bloat and instruction drift monitoring |
-
-### 🤖 Agents
-
-| Name | Source | Platform | Description |
-|------|--------|----------|-------------|
-| **pi-coding-agent** | internal | pi | Pi as the thin terminal harness |
-| **copilot-pr-agent** | internal | copilot | Copilot custom PR review agent |
+| Name | Platform | Description |
+|------|----------|-------------|
+| **codeburn** | all | Interactive TUI for token/cost observability *(4.6K★)* |
+| **context-audit** | all | Context bloat and instruction drift monitoring |
 
 ---
 
 ## Installation Dimensions
 
-Every installation can be filtered across six dimensions:
+Every installation can be filtered across five dimensions:
 
-1. **Source** — `internal` (from this repo) or `external` (third-party)
-2. **Category** — `skill`, `prompt`, `command`, `tool`, `agent`, `workflow`
-3. **Platform** — `opencode`, `pi`, `copilot`, `codex`, `claude`
-4. **Agent Target** — `all` or a specific agent/platform name
-5. **Skill** — specific component name(s), comma-separated for multiple
-6. **Scope** — `local` (default) or `all` to include external components
+1. **Category** — `skill`, `prompt`, `command`, `tool`, `agent`, `workflow`
+2. **Platform** — `opencode`, `pi`, `copilot`, `codex`, `claude`
+3. **Agent Target** — `all` or a specific agent/platform name
+4. **Skill** — specific component name(s), comma-separated for multiple
+5. **Scope** — `local` (default) or `all`
 
 Plus two favorites dimensions:
 
-7. **From** — a `favorites.tsv` file (`--from favorites.tsv`)
-8. **Tag** — filter favorites by tag (`--tag daily-driver,critical`)
+6. **From** — a `favorites.tsv` file (`--from favorites.tsv`)
+7. **Tag** — filter favorites by tag (`--tag daily-driver,critical`)
 
 ### Repo-Local by Default
 
 This skillkit is **repo-local by default**. It installs everything that can
-live inside your target directory — both internal skills and external skills
-that support local installation.
+live inside your target directory. Only repo-safe tools
+(e.g. `npx skills add` which creates `.agents/skills/` locally) are included.
 
 External skills that require global or user-level installation (e.g.
 `npm install -g`, `curl | sh` that writes to home directories) are
@@ -242,8 +218,8 @@ Use `favorites.tsv` to maintain your personal shortlist:
 
 ```tsv
 name	category	platforms	tags	source
-control-first	workflow	all	daily-driver	internal
-local-inference	skill	all	daily-driver	internal
+superpowers	workflow	all	daily-driver	external
+agent-skills	skill	all	daily-driver	external
 ```
 
 **Tags:**
@@ -260,7 +236,7 @@ serves as the source of truth. Each component has:
 
 - **Name** — identifier
 - **Category** — `skill`, `prompt`, `command`, `tool`, `agent`, `workflow`
-- **Source** — `internal` (maintained here) or `external` (from GitHub)
+- **Source** — `external` (from GitHub or npm)
 - **Platforms** — `all` or comma-separated platform list
 - **Agent Target** — `all` or specific agent/platform name
 - **Description** — what it does
@@ -295,6 +271,6 @@ Core beliefs:
 | `docs/WHY_THESE_TOOLS.md` | Comparison with alternatives |
 | `docs/REFERENCES.md` | Platform documentation links |
 | `MIGRATION.md` | Upgrade guide from previous versions |
-| `skills/` | Internal component definitions |
+| `favorites.tsv` | Personal shortlist for batch install |
 | `scripts/skillkit.sh` | Unified CLI for macOS/Linux |
 | `scripts/skillkit.ps1` | Unified CLI for Windows |

@@ -1,16 +1,12 @@
 # Portable AI Skillkit Repo
 
-This repository is the source package for portable coding-agent skills.
+This repository is a curated catalog of portable coding-agent skills from
+actively maintained third-party sources.
 
 When editing it:
 
-- Keep `skills/*/SKILL.md`, `skills/*/PROMPT.md`, and `skills/*/COMMAND.md` as the
-  source of truth for each component. Category determines which filename is used:
-  - `skill`, `workflow`, `agent`, `tool` → `SKILL.md`
-  - `prompt` → `PROMPT.md`
-  - `command` → `COMMAND.md`
-- Keep components concise and operational. Put only agent-useful instructions in
-  the skill body.
+- Keep `catalog.tsv` as the single source of truth.
+- Keep component descriptions concise and operational.
 - Use frontmatter (`--- name: ... description: ... platforms: ... agent_target: ... ---`)
   to declare platform compatibility and agent targeting.
 - Preserve installer behavior that avoids overwriting user project files outside
@@ -23,21 +19,19 @@ When editing it:
 
 Every component in `catalog.tsv` is classified across four dimensions:
 
-1. **Source**: `internal` (maintained here) or `external` (third-party)
+1. **Source**: `external` (third-party)
 2. **Category**: `skill`, `prompt`, `command`, `tool`, `agent`, `workflow`
 3. **Platform**: `all`, `opencode`, `pi`, `copilot`, `codex`, `claude`
 4. **Agent Target**: `all` or a specific agent/platform name
 
-## Internal vs External
+## External Components
 
-- **Internal**: Markdown files live in `skills/<name>/`. The installer copies them
-  to platform-specific directories and generates indices.
-- **External**: Install commands in `catalog.tsv` run at install time (e.g.
-  `npx skills add`, `npm install -g`).
+Install commands in `catalog.tsv` run at install time (e.g.
+`npx skills add`, `npm install -g`).
 
 ## Platform Directories
 
-When installing, internal components are routed to:
+When installing, components are routed to:
 
 | Platform | Skill Directory | Agent Config Directory |
 |----------|----------------|----------------------|
@@ -47,10 +41,6 @@ When installing, internal components are routed to:
 | Copilot | `.github/copilot-skills/` | `.github/copilot-agents/` |
 | Codex | `.codex/skills/` | `.codex/agents/` |
 | Claude | `.claude/skills/` | `.claude/agents/` |
-
-Agent-specific workflows (where `agent_target` != `all`) may include `agent.*`
-config files in their `skills/<name>/` directory. These are copied to the
-platform's agent config directory during installation.
 
 ## External Documentation
 
