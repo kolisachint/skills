@@ -1,0 +1,496 @@
+$ErrorActionPreference = "Stop"
+
+$Root = (Resolve-Path $PSScriptRoot).Path
+$Catalog = Join-Path $Root "catalog.tsv"
+
+function Show-Usage {
+  @"
+Portable AI Skillkit — Curated catalog thin wrapper around npx skills
+
+Commands:
+  .\skillkit.ps1 list                          Show all components grouped by category
+  .\skillkit.ps1 list-categories               Show available categories
+  .\skillkit.ps1 list-platforms                Show available platforms
+  .\skillkit.ps1 search KEYWORD                Search components by name/description
+  .\skillkit.ps1 top [N]                       Show top-N starred components
+  .\skillkit.ps1 install --target PATH         Install all catalog components
+  .\skillkit.ps1 install --target PATH --skill NAME          Install specific component(s)
+  .\skillkit.ps1 install --target PATH --category CATEGORY   Install by category
+  .\skillkit.ps1 install --target PATH --platform PLATFORM   Install by platform
+  .\skillkit.ps1 install --target PATH --agent-target AGENT  Install by agent target
+  .\skillkit.ps1 install --target PATH --from FILE           Install from favorites file
+  .\skillkit.ps1 install --target PATH --from FILE --tag TAG Install favorites matching tags
+  .\skillkit.ps1 export --output PATH          Export portable bundle
+
+Examples:
+  .\skillkit.ps1 list
+  .\skillkit.ps1 search review
+  .\skillkit.ps1 install --target C:\code\repo --skill caveman
+  .\skillkit.ps1 install --target C:\code\repo --skill caveman,grill-me
+  .\skillkit.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver
+  .\skillkit.ps1 install --target C:\code\repo --category workflow
+"@
+}
+
+# ---------------------------------------------------------------------------
+# Catalog parsing
+# ---------------------------------------------------------------------------
+
+function Read-Catalog {
+  $lines = Get-Content -Path $Catalog | Where-Object { $_ -notmatch '^#' -and $_ -notmatch '^name\t' }
+  $lines | ForEach-Object {
+    $fields = $_ -split "`t"
+    if ($fields.Length -ge 6) {
+      [PSCustomObject]@{
+        Name = $fields[0]
+        Category = $fields[1]
+        Platforms = $fields[3]
+        AgentTarget = $fields[4]
+        Description = $fields[5]
+        InstallCommand = if ($fields.Length -ge 7) { $fields[6] } else { "" }
+        Stars = if ($fields.Length -ge 8) { $fields[7] } else { "" }
+      }
+    }
+  }
+}
+
+function Filter-Catalog {
+  param(
+    [string]$CategoryFilter = "",
+    [string]$PlatformFilter = "",
+    [string]$AgentTargetFilter = "",
+    [string]$SkillFilter = ""
+  )
+
+  $result = Read-Catalog
+  if ($CategoryFilter) { $result = $result | Where-Object { $_.Category -eq $CategoryFilter } }
+  if ($PlatformFilter) {
+    $result = $result | Where-Object {
+      $_.Platforms -eq "all" -or $_.Platforms -eq $PlatformFilter -or $_.Platforms -match "(^|,)$PlatformFilter($|,)"
+    }
+  }
+  if ($AgentTargetFilter) { $result = $result | Where-Object { $_.AgentTarget -eq "all" -or $_.AgentTarget -eq $AgentTargetFilter } }
+  if ($SkillFilter) {
+    $skills = $SkillFilter -split ","
+    $result = $result | Where-Object { $skills -contains $_.Name }
+  }
+  return $result
+}
+
+# ---------------------------------------------------------------------------
+# List commands
+# ---------------------------------------------------------------------------
+
+function Cmd-List {
+  Write-Host ""
+  Write-Host "📦 Portable AI Skillkit - Curated Components"
+  Write-Host ""
+
+  $categories = Read-Catalog | Select-Object -ExpandProperty Category -Unique | Sort-Object
+  foreach ($category in $categories) {
+    $components = Read-Catalog | Where-Object { $_.Category -eq $category }
+
+    switch ($category) {
+      "skill"    { Write-Host "🧠 Skills" }
+      "prompt"   { Write-Host "💬 Prompts" }
+      "command"  { Write-Host "🎯 Commands" }
+      "tool"     { Write-Host "🔧 Tools" }
+      "agent"    { Write-Host "🤖 Agents" }
+      "workflow" { Write-Host "⚡ Workflows" }
+      default    { Write-Host $category }
+    }
+
+    foreach ($comp in ($components | Sort-Object Name)) {
+      $tags = ""
+      if ($comp.Platforms -ne "all") { $tags += " [$($comp.Platforms)]" }
+      if ($comp.AgentTarget -ne "all") { $tags += " → $($comp.AgentTarget)" }
+      if ($comp.Stars -and $comp.Stars -ne "-") { $tags += " ($($comp.Stars)★)" }
+      Write-Host ("  {0,-20} {1}{2}" -f $comp.Name, $comp.Description, $tags)
+    }
+    Write-Host ""
+  }
+
+  Write-Host "Install one:     .\skillkit.ps1 install --target C:\code\repo --skill <name>"
+  Write-Host "Install by cat:  .\skillkit.ps1 install --target C:\code\repo --category <cat>"
+  Write-Host "Install all:     .\skillkit.ps1 install --target C:\code\repo"
+  Write-Host ""
+}
+
+function Cmd-ListCategories {
+  Write-Host ""
+  Write-Host "Available Categories:"
+  Write-Host ""
+  $categories = Read-Catalog | Select-Object -ExpandProperty Category -Unique | Sort-Object
+  foreach ($category in $categories) {
+    $count = (Read-Catalog | Where-Object { $_.Category -eq $category }).Count
+    switch ($category) {
+      "skill"    { $icon = "🧠" }
+      "prompt"   { $icon = "💬" }
+      "command"  { $icon = "🎯" }
+      "tool"     { $icon = "🔧" }
+      "agent"    { $icon = "🤖" }
+      "workflow" { $icon = "⚡" }
+      default    { $icon = "  " }
+    }
+    Write-Host ("  {0} {1,-12} ({2} components)" -f $icon, $category, $count)
+  }
+  Write-Host ""
+}
+
+function Cmd-ListPlatforms {
+  Write-Host ""
+  Write-Host "Supported Platforms:"
+  Write-Host ""
+  Write-Host "  🌐 all      - Platform-agnostic (works everywhere)"
+  Write-Host "  🔷 opencode - OpenCode IDE/agent"
+  Write-Host "  🥧 pi       - Pi Coding Agent"
+  Write-Host "  🐙 copilot  - GitHub Copilot"
+  Write-Host "  🟢 codex    - OpenAI Codex"
+  Write-Host "  🟣 claude   - Claude Code"
+  Write-Host ""
+
+  Write-Host "Platform-specific components:"
+  Write-Host ""
+  $platforms = Read-Catalog | Select-Object -ExpandProperty Platforms -Unique | Sort-Object | Where-Object { $_ -ne "all" }
+  foreach ($plat in $platforms) {
+    $count = (Read-Catalog | Where-Object { $_.Platforms -eq $plat -or $_.Platforms -match "(^|,)$plat($|,)" }).Count
+    Write-Host ("  {0,-10} ({1} components)" -f $plat, $count)
+  }
+  Write-Host ""
+}
+
+# ---------------------------------------------------------------------------
+# Search commands
+# ---------------------------------------------------------------------------
+
+function Cmd-Search {
+  param([string]$Query = "")
+
+  if (-not $Query) {
+    Write-Error "search requires a KEYWORD"
+    Show-Usage
+    exit 1
+  }
+
+  Write-Host ""
+  Write-Host "🔍 Search results for: $Query"
+  Write-Host ""
+
+  $lq = $Query.ToLower()
+  $results = Read-Catalog | Where-Object {
+    $_.Name.ToLower() -match $lq -or
+    $_.Description.ToLower() -match $lq -or
+    $_.Category.ToLower() -match $lq -or
+    $_.AgentTarget.ToLower() -match $lq
+  }
+
+  if ($results.Count -eq 0) {
+    Write-Host 'No components match "$Query".'
+    Write-Host ""
+    Write-Host "Try:"
+    Write-Host "  .\skillkit.ps1 list    to see all components"
+    Write-Host "  .\skillkit.ps1 top 5   to see top starred skills"
+    Write-Host ""
+    return
+  }
+
+  Write-Host "Found $($results.Count) result(s):"
+  Write-Host ""
+
+  foreach ($comp in ($results | Sort-Object Category, Name)) {
+    $icon = switch ($comp.Category) {
+      "skill"    { "🧠" }
+      "prompt"   { "💬" }
+      "command"  { "🎯" }
+      "tool"     { "🔧" }
+      "agent"    { "🤖" }
+      "workflow" { "⚡" }
+      default    { "  " }
+    }
+
+    $tags = ""
+    if ($comp.Platforms -ne "all") { $tags += " [$($comp.Platforms)]" }
+    if ($comp.AgentTarget -ne "all") { $tags += " → $($comp.AgentTarget)" }
+    if ($comp.Stars -and $comp.Stars -ne "-") { $tags += " ($($comp.Stars)★)" }
+
+    Write-Host ("  {0} {1,-20} {2}{3}" -f $icon, $comp.Name, $comp.Description, $tags)
+  }
+
+  Write-Host ""
+  Write-Host "Install: .\skillkit.ps1 install --target C:\code\repo --skill <name>"
+  Write-Host ""
+}
+
+function Cmd-Top {
+  param([string]$N = "10")
+
+  if ($N -notmatch '^\d+$') { $N = 10 }
+  $N = [int]$N
+
+  Write-Host ""
+  Write-Host "⭐ Top $N Starred Components"
+  Write-Host ""
+
+  $results = Read-Catalog | Where-Object {
+    $_.Stars -and $_.Stars -ne "-"
+  } | ForEach-Object {
+    $starsRaw = $_.Stars -replace '[K+]', ''
+    $starsNum = [int]$starsRaw
+    if ($_.Stars -match 'K') { $starsNum = $starsNum * 1000 }
+    [PSCustomObject]@{
+      Component = $_
+      StarsNum = $starsNum
+    }
+  } | Sort-Object StarsNum -Descending | Select-Object -First $N
+
+  if ($results.Count -eq 0) {
+    Write-Host "No starred components found."
+    Write-Host ""
+    return
+  }
+
+  $rank = 1
+  foreach ($item in $results) {
+    $comp = $item.Component
+    $icon = switch ($comp.Category) {
+      "skill"    { "🧠" }
+      "prompt"   { "💬" }
+      "command"  { "🎯" }
+      "tool"     { "🔧" }
+      "agent"    { "🤖" }
+      "workflow" { "⚡" }
+      default    { "  " }
+    }
+
+    $tags = ""
+    if ($comp.Platforms -ne "all") { $tags += " [$($comp.Platforms)]" }
+    if ($comp.AgentTarget -ne "all") { $tags += " → $($comp.AgentTarget)" }
+
+    Write-Host ("  {0,2}. {1} {2,-20} {3}{4} ({5}★)" -f $rank, $icon, $comp.Name, $comp.Description, $tags, $comp.Stars)
+    $rank++
+  }
+
+  Write-Host ""
+}
+
+# ---------------------------------------------------------------------------
+# Favorites resolution
+# ---------------------------------------------------------------------------
+
+function Read-Favorites {
+  param([string]$File, [string]$TagFilter = "")
+
+  if (-not (Test-Path $File)) {
+    Write-Error "Favorites file not found: $File"
+    return @()
+  }
+
+  $reqTags = if ($TagFilter) { $TagFilter -split "," | ForEach-Object { $_.Trim() } } else { @() }
+
+  Get-Content -Path $File | Where-Object { $_ -notmatch '^#' -and $_ -notmatch '^name\t' } | ForEach-Object {
+    $fields = $_ -split "`t"
+    if ($fields.Length -lt 5) { return }
+    $favTags = $fields[3] -split "," | ForEach-Object { $_.Trim() }
+    $match = $reqTags.Count -eq 0
+    foreach ($rt in $reqTags) {
+      if ($favTags -contains $rt) { $match = $true; break }
+    }
+    if ($match) { $fields[0] }
+  }
+}
+
+# ---------------------------------------------------------------------------
+# Install — thin wrapper around npx skills / npm install
+# ---------------------------------------------------------------------------
+
+function Cmd-Install {
+  param(
+    [string]$Target = "",
+    [string]$CategoryFilter = "",
+    [string]$PlatformFilter = "",
+    [string]$AgentTargetFilter = "",
+    [string]$SkillFilter = "",
+    [string]$FromFile = "",
+    [string]$TagFilter = ""
+  )
+
+  if ($TagFilter -and -not $FromFile) {
+    Write-Error "--tag requires --from <favorites-file>"
+    Show-Usage
+    exit 1
+  }
+
+  if (-not $Target) {
+    Write-Error "--target is required"
+    Show-Usage
+    exit 1
+  }
+
+  # Resolve favorites to catalog entries
+  if ($FromFile) {
+    $favNames = Read-Favorites -File $FromFile -TagFilter $TagFilter
+    if ($favNames.Count -eq 0) {
+      Write-Host "No favorites match the tag filter: $($TagFilter -or '(none)')"
+      return
+    }
+
+    $catalogNames = Read-Catalog | Select-Object -ExpandProperty Name
+    $validNames = @()
+    foreach ($name in $favNames) {
+      if ($catalogNames -contains $name) {
+        $validNames += $name
+      } else {
+        Write-Warning "$name : not found in catalog, skipping"
+      }
+    }
+
+    if ($validNames.Count -eq 0) {
+      Write-Host "No valid favorites found in catalog."
+      return
+    }
+
+    $SkillFilter = $validNames -join ","
+  }
+
+  New-Item -ItemType Directory -Path $Target -Force | Out-Null
+  $Target = (Resolve-Path $Target).Path
+
+  Write-Host "Installing Portable AI Skillkit to $Target"
+
+  $components = Filter-Catalog -CategoryFilter $CategoryFilter -PlatformFilter $PlatformFilter -AgentTargetFilter $AgentTargetFilter -SkillFilter $SkillFilter
+
+  if ($components.Count -eq 0) {
+    Write-Host "No components match the filter (category=$CategoryFilter, platform=$PlatformFilter, agent=$AgentTargetFilter, skill=$SkillFilter)"
+    return
+  }
+
+  Write-Host "  Components to install: $($components.Count)"
+  Write-Host ""
+
+  foreach ($comp in ($components | Sort-Object Name)) {
+    if (-not $comp.InstallCommand -or $comp.InstallCommand -eq "-") {
+      Write-Host "  ⚠ $($comp.Name): no install command" -ForegroundColor Yellow
+      continue
+    }
+
+    Write-Host "  → $($comp.Name) ($($comp.Description))"
+    Write-Host "    $($comp.InstallCommand)"
+
+    try {
+      $origDir = Get-Location
+      Set-Location $Target
+      Invoke-Expression $comp.InstallCommand
+      Set-Location $origDir
+      Write-Host "  ✓ $($comp.Name) installed"
+      Write-Host ""
+    }
+    catch {
+      Set-Location $origDir
+      Write-Warning "  ⚠ $($comp.Name) installation failed (non-fatal): $_"
+      Write-Host ""
+    }
+  }
+
+  Write-Host "✓ Installation complete"
+  Write-Host "  npx skills manages .agents/skills/ and platform symlinks automatically."
+}
+
+# ---------------------------------------------------------------------------
+# Export command
+# ---------------------------------------------------------------------------
+
+function Cmd-Export {
+  param([string]$Output = "")
+
+  if (-not $Output) {
+    Write-Error "--output is required"
+    Show-Usage
+    exit 1
+  }
+
+  New-Item -ItemType Directory -Path $Output -Force | Out-Null
+  $Output = (Resolve-Path $Output).Path
+
+  Write-Host "Exporting Portable AI Skillkit to $Output"
+
+  Copy-Item -Path $Catalog -Destination (Join-Path $Output "catalog.tsv") -Force
+  Copy-Item -Path (Join-Path $Root "skillkit.sh") -Destination $Output -Force -ErrorAction SilentlyContinue
+  Copy-Item -Path (Join-Path $Root "skillkit.ps1") -Destination $Output -Force -ErrorAction SilentlyContinue
+
+  foreach ($doc in @("README.md", "AGENTS.md", "PHILOSOPHY.md", "MIGRATION.md")) {
+    $docPath = Join-Path $Root $doc
+    if (Test-Path $docPath) {
+      Copy-Item -Path $docPath -Destination (Join-Path $Output $doc) -Force
+    }
+  }
+
+  Write-Host "✓ Exported to $Output"
+}
+
+# ---------------------------------------------------------------------------
+# Main dispatcher
+# ---------------------------------------------------------------------------
+
+$command = $args[0]
+$remaining = $args[1..$args.Length]
+
+switch ($command) {
+  "list" {
+    Cmd-List
+  }
+  "list-categories" {
+    Cmd-ListCategories
+  }
+  "list-platforms" {
+    Cmd-ListPlatforms
+  }
+  "search" {
+    $query = if ($remaining.Length -gt 0) { $remaining[0] } else { "" }
+    Cmd-Search -Query $query
+  }
+  "top" {
+    $n = if ($remaining.Length -gt 0) { $remaining[0] } else { "10" }
+    Cmd-Top -N $n
+  }
+  "install" {
+    $target = ""
+    $categoryFilter = ""
+    $platformFilter = ""
+    $agentTargetFilter = ""
+    $skillFilter = ""
+    $fromFile = ""
+    $tagFilter = ""
+
+    for ($i = 0; $i -lt $remaining.Length; $i++) {
+      switch ($remaining[$i]) {
+        "--target"       { $target = $remaining[++$i] }
+        "--category"     { $categoryFilter = $remaining[++$i] }
+        "--platform"     { $platformFilter = $remaining[++$i] }
+        "--agent-target" { $agentTargetFilter = $remaining[++$i] }
+        "--skill"        { $skillFilter = $remaining[++$i] }
+        "--from"         { $fromFile = $remaining[++$i] }
+        "--tag"          { $tagFilter = $remaining[++$i] }
+        default {
+          if ($remaining[$i] -match '^--') {
+            Write-Error "Unknown flag: $($remaining[$i]). Did you mean --skill? Use --skill <name> to install a specific component."
+            Show-Usage
+            exit 1
+          }
+        }
+      }
+    }
+
+    Cmd-Install -Target $target -CategoryFilter $categoryFilter -PlatformFilter $platformFilter -AgentTargetFilter $agentTargetFilter -SkillFilter $skillFilter -FromFile $fromFile -TagFilter $tagFilter
+  }
+  "export" {
+    $output = ""
+    for ($i = 0; $i -lt $remaining.Length; $i++) {
+      if ($remaining[$i] -eq "--output") { $output = $remaining[++$i] }
+    }
+    Cmd-Export -Output $output
+  }
+  default {
+    Show-Usage
+    exit 1
+  }
+}

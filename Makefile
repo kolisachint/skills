@@ -1,6 +1,6 @@
 # Portable AI Skillkit — Makefile
 
-SKILLKIT := ./scripts/skillkit.sh
+SKILLKIT := ./skillkit.sh
 FAVORITES := favorites.tsv
 TARGET := .
 

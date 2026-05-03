@@ -4,98 +4,41 @@ Curated components for coding agents, organized by how you use them, where you u
 
 ## Quick Start
 
-### Option 1: Download then Run (Recommended)
-
-Save the installer to disk first so it can locate its helper scripts correctly.
-
-**macOS / Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh -o install.sh
-chmod +x install.sh
-./install.sh --target ~/repo
+# 1. Clone
+git clone https://github.com/kolisachint/skills.git && cd skills
+
+# 2. Install a specific skill
+./skillkit.sh install --target ~/repo --skill caveman
+
+# 3. Or install by category
+./skillkit.sh install --target ~/repo --category workflow
+
+# 4. Or install everything in the catalog
+./skillkit.sh install --target ~/repo
 ```
 
 **Windows:**
 ```powershell
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 -OutFile install.ps1
-.\install.ps1 --target C:\code\repo
+git clone https://github.com/kolisachint/skills.git; cd skills
+.\skillkit.ps1 install --target C:\code\repo --skill caveman
+.\skillkit.ps1 install --target C:\code\repo --category workflow
+.\skillkit.ps1 install --target C:\code\repo
 ```
 
-**With filters:**
-```bash
-# macOS / Linux — only workflow components for Codex
-./install.sh --target ~/repo --category workflow --agent-target codex
-
-# Windows — only workflow components for Codex
-.\install.ps1 --target C:\code\repo --category workflow --agent-target codex
-```
-
-### Option 2: Bootstrap from Favorites
+### Bootstrap from Favorites
 
 Curate your most-used components in `favorites.tsv`, then batch-install:
 
 ```bash
 # macOS / Linux — install everything tagged "daily-driver" or "critical"
-./scripts/skillkit.sh install --target ~/repo --from favorites.tsv --tag daily-driver,critical
-
-# macOS / Linux — install all favorites (no tag filter)
-./scripts/skillkit.sh install --target ~/repo --from favorites.tsv
+./skillkit.sh install --target ~/repo --from favorites.tsv --tag daily-driver,critical
 
 # macOS / Linux — via Make
 make bootstrap-ai TARGET=~/repo
 
 # Windows — install everything tagged "daily-driver" or "critical"
-.\scripts\skillkit.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver,critical
-
-# Windows — install all favorites (no tag filter)
-.\scripts\skillkit.ps1 install --target C:\code\repo --from favorites.tsv
-```
-
-### Option 3: Manual Install (one at a time)
-
-**1. Clone**
-```bash
-git clone https://github.com/kolisachint/skills.git && cd skills
-```
-
-**2. Install a specific component by name**
-```bash
-# macOS / Linux
-./scripts/skillkit.sh install --target ~/repo --skill caveman
-
-# Windows
-.\scripts\skillkit.ps1 install --target C:\code\repo --skill caveman
-```
-
-**3. Install multiple components by name**
-```bash
-# macOS / Linux
-./scripts/skillkit.sh install --target ~/repo --skill caveman,grill-me
-
-# Windows
-.\scripts\skillkit.ps1 install --target C:\code\repo --skill caveman,grill-me
-```
-
-**4. Install with filters**
-```bash
-# macOS / Linux
-./scripts/skillkit.sh install --target ~/repo --category workflow
-./scripts/skillkit.sh install --target ~/repo --platform pi
-./scripts/skillkit.sh install --target ~/repo --agent-target codex
-
-# Windows
-.\scripts\skillkit.ps1 install --target C:\code\repo --category workflow
-.\scripts\skillkit.ps1 install --target C:\code\repo --platform pi
-.\scripts\skillkit.ps1 install --target C:\code\repo --agent-target codex
-```
-
-**5. Install everything**
-```bash
-# macOS / Linux
-./scripts/skillkit.sh install --target ~/repo
-
-# Windows
-.\scripts\skillkit.ps1 install --target C:\code\repo
+.\skillkit.ps1 install --target C:\code\repo --from favorites.tsv --tag daily-driver,critical
 ```
 
 ---
@@ -104,24 +47,24 @@ git clone https://github.com/kolisachint/skills.git && cd skills
 
 ```bash
 # macOS / Linux
-./scripts/skillkit.sh list
-./scripts/skillkit.sh list-categories
-./scripts/skillkit.sh list-platforms
-./scripts/skillkit.sh search review
-./scripts/skillkit.sh search codex
-./scripts/skillkit.sh search debug
-./scripts/skillkit.sh top        # default top 10
-./scripts/skillkit.sh top 5      # top 5 only
+./skillkit.sh list
+./skillkit.sh list-categories
+./skillkit.sh list-platforms
+./skillkit.sh search review
+./skillkit.sh search codex
+./skillkit.sh search debug
+./skillkit.sh top        # default top 10
+./skillkit.sh top 5      # top 5 only
 
 # Windows
-.\scripts\skillkit.ps1 list
-.\scripts\skillkit.ps1 list-categories
-.\scripts\skillkit.ps1 list-platforms
-.\scripts\skillkit.ps1 search review
-.\scripts\skillkit.ps1 search codex
-.\scripts\skillkit.ps1 search debug
-.\scripts\skillkit.ps1 top
-.\scripts\skillkit.ps1 top 5
+.\skillkit.ps1 list
+.\skillkit.ps1 list-categories
+.\skillkit.ps1 list-platforms
+.\skillkit.ps1 search review
+.\skillkit.ps1 search codex
+.\skillkit.ps1 search debug
+.\skillkit.ps1 top
+.\skillkit.ps1 top 5
 ```
 
 ## Curated Components
@@ -172,48 +115,28 @@ Plus two favorites dimensions:
 
 ### Repo-Local by Default
 
-This skillkit is **repo-local by default**. It installs everything that can
-live inside your target directory. Only repo-safe tools
-(e.g. `npx skills add` which creates `.agents/skills/` locally) are included.
+This skillkit is **repo-local by default**. It only catalogs tools that install
+inside your target directory (e.g. `npx skills add`, `npm install`).
+Global-only tools are excluded.
 
-External skills that require global or user-level installation (e.g.
-`npm install -g`, `curl | sh` that writes to home directories) are
-automatically skipped with a warning. Only repo-safe external skills
-(e.g. `npx skills add` which creates `.agents/skills/` locally) are included.
-
-Everything lives inside your target directory. If you delete the repo, the
-skills are gone. No files are written to `~/.claude`, `~/.config`, or other
-home directory paths.
-
-When platform directories already exist in the target, the installer
-auto-detects them. Use `--platform` to force installation to a specific
-platform even if its directory doesn't exist yet.
+Use `--platform` to filter the catalog by platform compatibility. The actual
+platform directories (`.pi/`, `.claude/`, etc.) are managed by `npx skills`.
 
 ---
 
 ## What Gets Installed
 
-### Shared (all installations)
+This repo is a thin wrapper around `npx skills`. Each component's install
+command runs directly in your target directory:
 
-- `.ai/skillkit/skills/*.md` — Skill definitions
-- `.ai/skillkit/prompts/*.md` — Prompt templates
-- `.ai/skillkit/commands/*.md` — Command definitions
-- `.ai/skillkit/agents/*.md` — Agent definitions
-- `.ai/skillkit/workflows/*.md` — Workflow definitions
-- `.ai/skillkit/AGENTS.md` — Shared instruction index
+- `npx skills add <repo>` — installs to `.agents/skills/` and creates
+  platform-specific symlinks (`.pi/skills/`, `.claude/skills/`, etc.)
+- `npm install <pkg>` — installs to `node_modules/`; skills are copied to
+  `.agents/skills/` automatically
 
-### Platform-Specific (when detected or forced)
-
-| Platform | Skills | Agent Configs | Index |
-|----------|--------|---------------|-------|
-| **Pi** | `.pi/skills/*.md` | `.pi/agents/*` | `.pi/AGENTS.md` |
-| **OpenCode** | `.opencode/skills/*.md` | `.opencode/agents/*` | `.opencode/AGENTS.md` |
-| **Copilot** | `.github/copilot-skills/*.md` | `.github/copilot-agents/*` | `.github/copilot-instructions.md` |
-| **Codex** | `.codex/skills/*.md` | `.codex/agents/*` | `.codex/AGENTS.md` |
-| **Claude** | `.claude/skills/*.md` | `.claude/agents/*` | `.claude/AGENTS.md` |
-
-Existing instruction files are preserved. The installer updates only managed
-blocks marked with `BEGIN AI SKILLKIT` and `END AI SKILLKIT`.
+Everything stays inside your target directory. If you delete the repo, the
+skills are gone. No files are written to `~/.claude`, `~/.config`, or other
+home directory paths.
 
 ---
 
@@ -277,5 +200,5 @@ Core beliefs:
 | `docs/REFERENCES.md` | Platform documentation links |
 | `MIGRATION.md` | Upgrade guide from previous versions |
 | `favorites.tsv` | Personal shortlist for batch install |
-| `scripts/skillkit.sh` | Unified CLI for macOS/Linux |
-| `scripts/skillkit.ps1` | Unified CLI for Windows |
+| `skillkit.sh` | Unified CLI for macOS/Linux |
+| `skillkit.ps1` | Unified CLI for Windows |
