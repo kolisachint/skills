@@ -4,25 +4,30 @@ Curated components for coding agents, organized by how you use them, where you u
 
 ## Quick Start
 
-### Option 1: One-Line Install (no clone)
+### Option 1: Download then Run (Recommended)
+
+Save the installer to disk first so it can locate its helper scripts correctly.
 
 **macOS / Linux:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh -o install.sh
+chmod +x install.sh
+./install.sh --target ~/repo
 ```
 
 **Windows:**
 ```powershell
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 -OutFile install.ps1
+.\install.ps1 --target C:\code\repo
 ```
 
 **With filters:**
 ```bash
 # macOS / Linux — only workflow components for Codex
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --category workflow --agent-target codex
+./install.sh --target ~/repo --category workflow --agent-target codex
 
 # Windows — only workflow components for Codex
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex ; .\install.ps1 --target C:\code\repo --category workflow --agent-target codex
+.\install.ps1 --target C:\code\repo --category workflow --agent-target codex
 ```
 
 ### Option 2: Bootstrap from Favorites
