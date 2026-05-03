@@ -23,6 +23,7 @@ Commands:
   .\scripts\skillkit.ps1 install --target PATH --agent-target codex    Install only Codex-targeted agents/workflows
   .\scripts\skillkit.ps1 install --target PATH --skill control-first   Install a specific component by name
   .\scripts\skillkit.ps1 install --target PATH --skill skill1,skill2   Install multiple specific components
+  .\scripts\skillkit.ps1 install --target PATH --scope local           Install only repo-local components (skip external)
   .\scripts\skillkit.ps1 export --output PATH          Export portable bundle
 
 Dimensions:
@@ -38,6 +39,7 @@ Examples:
   .\scripts\skillkit.ps1 install --target C:\code\repo --platform copilot --agent-target copilot
   .\scripts\skillkit.ps1 install --target C:\code\repo --skill control-first
   .\scripts\skillkit.ps1 install --target C:\code\repo --skill caveman,grill-me
+  .\scripts\skillkit.ps1 install --target C:\code\repo --scope local
   .\scripts\skillkit.ps1 search review
   .\scripts\skillkit.ps1 top 5
 "@
@@ -570,8 +572,14 @@ function Cmd-Install {
     [string]$CategoryFilter = "",
     [string]$PlatformFilter = "",
     [string]$AgentTargetFilter = "",
-    [string]$SkillFilter = ""
+    [string]$SkillFilter = "",
+    [string]$Scope = ""
   )
+
+  # --scope local forces source=internal, skipping all external components
+  if ($Scope -eq "local") {
+    $SourceFilter = "internal"
+  }
 
   if (-not $Target) {
     Write-Error "--target is required"
@@ -714,6 +722,7 @@ switch ($command) {
     $platformFilter = ""
     $agentTargetFilter = ""
     $skillFilter = ""
+    $scope = ""
 
     for ($i = 0; $i -lt $remaining.Length; $i++) {
       switch ($remaining[$i]) {
@@ -723,10 +732,11 @@ switch ($command) {
         "--platform"     { $platformFilter = $remaining[++$i] }
         "--agent-target" { $agentTargetFilter = $remaining[++$i] }
         "--skill"        { $skillFilter = $remaining[++$i] }
+        "--scope"        { $scope = $remaining[++$i] }
       }
     }
 
-    Cmd-Install -Target $target -SourceFilter $sourceFilter -CategoryFilter $categoryFilter -PlatformFilter $platformFilter -AgentTargetFilter $agentTargetFilter -SkillFilter $skillFilter
+    Cmd-Install -Target $target -SourceFilter $sourceFilter -CategoryFilter $categoryFilter -PlatformFilter $platformFilter -AgentTargetFilter $agentTargetFilter -SkillFilter $skillFilter -Scope $scope
   }
   "export" {
     $output = ""

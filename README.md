@@ -45,7 +45,10 @@ cd skills
 ./install.sh --target ~/repo --skill control-first
 ./install.sh --target ~/repo --skill control-first,local-inference,caveman
 
-# 5. Or run scripts directly
+# 5. Strictly repo-local (skip anything that touches home dir)
+./install.sh --target ~/repo --scope local
+
+# 6. Or run scripts directly
 ./scripts/skillkit.sh install --target ~/repo --source internal --category workflow
 ```
 
@@ -130,13 +133,23 @@ cd skills
 
 ## Installation Dimensions
 
-Every installation can be filtered across five dimensions:
+Every installation can be filtered across six dimensions:
 
 1. **Source** — `internal` (from this repo) or `external` (third-party)
 2. **Category** — `skill`, `prompt`, `command`, `tool`, `agent`, `workflow`
 3. **Platform** — `opencode`, `pi`, `copilot`, `codex`, `claude`
 4. **Agent Target** — `all` or a specific agent/platform name
 5. **Skill** — specific component name(s), comma-separated for multiple
+6. **Scope** — `local` forces only repo-level components (skips external)
+
+### Repo-Local by Default
+
+This skillkit is designed to be **repo-local**. Everything it installs lives
+inside your target directory. If you delete the repo, the skills are gone.
+
+Use `--scope local` to guarantee this — it skips any external component that
+cannot be installed purely inside the repo. External components that require
+global or user-level installation are skipped with a warning.
 
 When platform directories already exist in the target, the installer
 auto-detects them. Use `--platform` to force installation to a specific

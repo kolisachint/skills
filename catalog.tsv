@@ -38,6 +38,12 @@ superpowers	workflow	external	all	all	Complete TDD and development methodology f
 agent-skills	skill	external	all	all	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills --yes	20K+
 caveman	command	external	all	all	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman --yes	52K
 grill-me	command	external	all	all	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me --yes	31K
-plannotator	command	external	all	all	Visual plan and diff review with annotations	curl -s https://plannotator.ai/install.sh | sh	5K
-codeburn	tool	external	all	all	Interactive TUI dashboard for token/cost observability	npm install -g codeburn	4.6K
-context-audit	tool	external	all	all	Context bloat detection and instruction drift monitoring	npm install -g ctxaudit	-
+plannotator	command	external	all	all	Visual plan and diff review with annotations	-	5K
+# plannotator requires global install: curl -s https://plannotator.ai/install.sh | sh
+# Install manually if you need it.
+codeburn	tool	external	all	all	Interactive TUI dashboard for token/cost observability	-	4.6K
+# codeburn requires global install: npm install -g codeburn
+# Install manually if you need it.
+context-audit	tool	external	all	all	Context bloat detection and instruction drift monitoring	-	-
+# context-audit requires global install: npm install -g ctxaudit
+# Install manually if you need it.

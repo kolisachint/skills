@@ -28,6 +28,7 @@ Commands:
   skillkit.sh install --target PATH --agent-target codex    Install only Codex-targeted agents/workflows
   skillkit.sh install --target PATH --skill control-first   Install a specific component by name
   skillkit.sh install --target PATH --skill skill1,skill2   Install multiple specific components
+  skillkit.sh install --target PATH --scope local           Install only repo-local components (skip external)
   skillkit.sh export --output PATH          Export portable bundle
 
 Dimensions:
@@ -44,6 +45,7 @@ Examples:
   ./scripts/skillkit.sh install --target ~/repo --category agent --platform codex
   ./scripts/skillkit.sh install --target ~/repo --skill control-first
   ./scripts/skillkit.sh install --target ~/repo --skill caveman,grill-me
+  ./scripts/skillkit.sh install --target ~/repo --scope local
   ./scripts/skillkit.sh search review
   ./scripts/skillkit.sh top 5
 EOF
@@ -626,6 +628,7 @@ cmd_install() {
   local platform_filter=""
   local agent_target_filter=""
   local skill_filter=""
+  local scope=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -635,9 +638,15 @@ cmd_install() {
       --platform) platform_filter="$2"; shift 2 ;;
       --agent-target) agent_target_filter="$2"; shift 2 ;;
       --skill) skill_filter="$2"; shift 2 ;;
+      --scope) scope="$2"; shift 2 ;;
       *) shift ;;
     esac
   done
+
+  # --scope local forces source=internal, skipping all external components
+  if [[ "$scope" == "local" ]]; then
+    source_filter="internal"
+  fi
 
   if [[ -z "$target" ]]; then
     printf 'Error: --target is required\n' >&2
