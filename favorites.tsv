@@ -1,4 +1,3 @@
-# See docs/CATALOG_FORMAT.md for column definitions
 name	category	platforms	tags	source
 superpowers	workflow	all	daily-driver	external
 agent-skills	skill	all	daily-driver	external
