@@ -1,34 +1,8 @@
-# Portable AI Skillkit - Component Catalog
-# Single source of truth for all skills, prompts, commands, tools, agents, and workflows
-# Format: name | category | source | platforms | agent_target | description | install_command | stars
-#
-# Categories:
-#   skill     - Reusable capabilities and knowledge modules
-#   prompt    - Prompt templates and patterns
-#   command  - Interactive modes invoked on demand
-#   tool      - Monitoring, analysis, and routing utilities
-#   agent     - Terminal harnesses and execution environments
-#   workflow  - Structured processes for how you work
-#
-# Source:
-#   external  - Sourced from actively maintained GitHub repos
-#
-# Platforms (comma-separated):
-#   all       - Works across all platforms
-#   opencode  - OpenCode specific
-#   pi        - Pi specific
-#   copilot   - GitHub Copilot specific
-#   codex     - OpenAI Codex specific
-#   claude    - Claude specific
-#
-# Agent Target:
-#   all       - Generic, works with any agent
-#   <name>    - Specific agent or platform target (e.g., codex, copilot, claude, pi, opencode)
-
+# See docs/CATALOG_FORMAT.md for column definitions
 name	category	source	platforms	agent_target	description	install_command	stars
 superpowers	workflow	external	all	all	Complete TDD and development methodology framework with 20+ production skills	npx skills add obra/superpowers --yes	90K
 agent-skills	skill	external	all	all	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills --yes	20K+
 caveman	command	external	all	all	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman --yes	52K
 grill-me	command	external	all	all	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me --yes	31K
-plannotator	command	external	all	all	Visual plan and diff review with annotations	npm install @plannotator/pi-extension	5K
+plannotator	command	external	pi	all	Visual plan and diff review with annotations	pi install npm:@plannotator/pi-extension	5K
 codeburn	tool	external	all	all	Interactive TUI dashboard for token/cost observability	npm install codeburn	4.6K

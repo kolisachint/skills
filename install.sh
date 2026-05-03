@@ -419,10 +419,22 @@ cmd_install() {
       continue
     fi
 
-    printf '  → %s (%s)\n' "$name" "$description"
-    printf '    %s\n' "$install_cmd"
+    local cmd="$install_cmd"
+    if [[ "$platform_filter" == "pi" ]]; then
+      if [[ "$cmd" == "npm install "* ]]; then
+        local pkg="${cmd#npm install }"
+        pkg="${pkg#"${pkg%%[![:space:]]*}"}"
+        pkg="${pkg%"${pkg##*[![:space:]]}"}"
+        if [[ "$pkg" == *"pi-extension"* ]]; then
+          cmd="pi install npm:${pkg}"
+        fi
+      fi
+    fi
 
-    if (cd "$target" && eval "$install_cmd"); then
+    printf '  → %s (%s)\n' "$name" "$description"
+    printf '    %s\n' "$cmd"
+
+    if (cd "$target" && eval "$cmd"); then
       printf '  ✓ %s installed\n\n' "$name"
     else
       printf '  ⚠ %s installation failed (non-fatal)\n\n' "$name" >&2

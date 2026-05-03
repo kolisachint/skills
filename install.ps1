@@ -376,13 +376,21 @@ function Cmd-Install {
       continue
     }
 
+    $cmd = $comp.InstallCommand
+    if ($PlatformFilter -eq "pi" -and $cmd -match '^npm\s+install\s+(.+)$') {
+      $pkg = $matches[1].Trim()
+      if ($pkg -match 'pi-extension') {
+        $cmd = "pi install npm:$pkg"
+      }
+    }
+
     Write-Host "  → $($comp.Name) ($($comp.Description))"
-    Write-Host "    $($comp.InstallCommand)"
+    Write-Host "    $cmd"
 
     try {
       $origDir = Get-Location
       Set-Location $Target
-      Invoke-Expression $comp.InstallCommand
+      Invoke-Expression $cmd
       Set-Location $origDir
       Write-Host "  ✓ $($comp.Name) installed"
       Write-Host ""

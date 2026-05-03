@@ -1,15 +1,4 @@
-# Personal favorites index for Portable AI Skillkit
-# Format: name | category | platforms | tags | source
-#
-# Tags:
-#   daily-driver  - Install on every project
-#   occasional    - Rare but important
-#   critical      - Required for specific project types (e.g., frontend-critical)
-#
-# Usage:
-#   ./scripts/skillkit.sh install --target ~/repo --from favorites.tsv --tag daily-driver
-#   ./scripts/skillkit.sh install --target ~/repo --from favorites.tsv --tag daily-driver,critical
-
+# See docs/CATALOG_FORMAT.md for column definitions
 name	category	platforms	tags	source
 superpowers	workflow	all	daily-driver	external
 agent-skills	skill	all	daily-driver	external
