@@ -1,493 +1,299 @@
 $ErrorActionPreference = "Stop"
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Catalog = Join-Path $Root "catalog.tsv"
 $MarkBegin = "<!-- BEGIN AI SKILLKIT -->"
 $MarkEnd = "<!-- END AI SKILLKIT -->"
-
-$ExternalSkills = @{
-  "caveman" = @{
-    Command = "npx skills add JuliusBrussee/caveman"
-    Description = "Ultra-compressed communication mode - 75% token reduction"
-    Url = "https://github.com/JuliusBrussee/caveman"
-  }
-  "grill-me" = @{
-    Command = "npx skills add mattpocock/skills --skill grill-me"
-    Description = "One-question-at-a-time requirement interrogation"
-    Url = "https://github.com/mattpocock/skills"
-  }
-  "codeburn" = @{
-    Command = "npm install -g codeburn"
-    Description = "Interactive TUI dashboard for token/cost observability"
-    Url = "https://github.com/AgentSeal/CodeBurn"
-  }
-  "plannotator" = @{
-    Command = "curl.exe -s https://plannotator.ai/install.sh | sh"
-    Description = "Visual plan and diff review with annotations"
-    Url = "https://github.com/backnotprop/plannotator"
-  }
-  "context-audit" = @{
-    Command = "npm install -g ctxaudit"
-    Description = "Context bloat detection and instruction drift monitoring"
-    Url = "https://github.com/sanjeed5/ctxaudit"
-  }
-  "superpowers" = @{
-    Command = "npx skills add obra/superpowers"
-    Description = "Complete TDD and development methodology framework with 20+ production skills"
-    Url = "https://github.com/obra/superpowers"
-  }
-  "agent-skills" = @{
-    Command = "npx skills add addyosmani/agent-skills"
-    Description = "Production-grade engineering skills from Google's culture"
-    Url = "https://github.com/addyosmani/agent-skills"
-  }
-}
 
 function Show-Usage {
   @"
 Portable AI Skillkit
 
 Commands:
-  .\scripts\skillkit.ps1 list
-  .\scripts\skillkit.ps1 list-components
-  .\scripts\skillkit.ps1 list-external
-  .\scripts\skillkit.ps1 install --target PATH --skills all|a,b --agents all|a,b
-  .\scripts\skillkit.ps1 install-external [--skills caveman,grill-me,codeburn,plannotator,context-audit,superpowers,agent-skills]
-  .\scripts\skillkit.ps1 export --output PATH --skills all|a,b
+  .\scripts\skillkit.ps1 list                          Show all components grouped by category
+  .\scripts\skillkit.ps1 list-categories               Show available categories
+  .\scripts\skillkit.ps1 install --target PATH         Install all components (bundled + external)
+  .\scripts\skillkit.ps1 install --target PATH --source bundled     Install only bundled components
+  .\scripts\skillkit.ps1 install --target PATH --source external    Install only external components
+  .\scripts\skillkit.ps1 install --target PATH --category workflow  Install only workflow components
+  .\scripts\skillkit.ps1 export --output PATH          Export portable bundle
 
-Agents:
-  all, shared, codex, claude, opencode, github, pi
+Categories:
+  workflow, command, tool, agent
 
 Examples:
-  .\scripts\install.ps1 --target C:\code\repo
-  .\scripts\install.ps1 --target C:\code\repo --skills control-first,pi-coding-agent
-  .\scripts\install.ps1 --target C:\code\repo --agents codex,claude
-  .\scripts\install-external.ps1 --skills caveman,grill-me
+  .\scripts\skillkit.ps1 list
+  .\scripts\skillkit.ps1 install --target C:\code\repo
+  .\scripts\skillkit.ps1 install --target C:\code\repo --source bundled
+  .\scripts\skillkit.ps1 install --target C:\code\repo --category workflow
+  .\scripts\skillkit.ps1 export --output .\dist
 "@
 }
 
-function Get-AllSkills {
-  Get-ChildItem -Path (Join-Path $Root "skills") -Directory |
-    Sort-Object Name |
-    ForEach-Object { $_.Name }
-}
-
-function Get-AllComponents {
-  Get-ChildItem -Path (Join-Path $Root "components") -File -Filter "*.md" |
-    Sort-Object BaseName |
-    ForEach-Object { $_.BaseName }
-}
-
-function Get-SkillDescription {
-  param([Parameter(Mandatory = $true)][string]$Skill)
-
-  $skillPath = Join-Path $Root "skills/$Skill/SKILL.md"
-  foreach ($line in Get-Content -Path $skillPath) {
-    if ($line -match '^description:\s*(.*)$') {
-      return ($Matches[1].Trim() -replace '^"|"$', '')
+function Read-Catalog {
+  $lines = Get-Content -Path $Catalog | Where-Object { $_ -notmatch '^#' -and $_ -notmatch '^name\t' }
+  $lines | ForEach-Object {
+    $fields = $_ -split "\t"
+    if ($fields.Length -ge 4) {
+      [PSCustomObject]@{
+        Name = $fields[0]
+        Category = $fields[1]
+        Source = $fields[2]
+        Description = $fields[3]
+        InstallCommand = if ($fields.Length -ge 5) { $fields[4] } else { "" }
+        Stars = if ($fields.Length -ge 6) { $fields[5] } else { "" }
+      }
     }
   }
-
-  return ""
 }
 
-function Resolve-Csv {
+function Get-Categories {
+  (Read-Catalog | Select-Object -ExpandProperty Category -Unique | Sort-Object)
+}
+
+function Cmd-List {
+  Write-Host ""
+  Write-Host "📦 Portable AI Skillkit - Curated Components"
+  Write-Host ""
+
+  foreach ($category in Get-Categories) {
+    $components = Read-Catalog | Where-Object { $_.Category -eq $category }
+    $count = $components.Count
+
+    switch ($category) {
+      "workflow" { Write-Host "⚡ Workflows (how you structure work)" }
+      "command"  { Write-Host "🎯 Commands (interactive modes)" }
+      "tool"     { Write-Host "🔧 Tools (monitoring & analysis)" }
+      "agent"    { Write-Host "🤖 Agents (execution harnesses)" }
+      default    { Write-Host $category }
+    }
+
+    foreach ($comp in ($components | Sort-Object Name)) {
+      $source = ""
+      if ($comp.Source -eq "bundled") { $source = " [bundled]" }
+      elseif ($comp.Source -eq "external") { $source = " [external]" }
+
+      $stars = ""
+      if ($comp.Stars -and $comp.Stars -ne "-") { $stars = " ($($comp.Stars)★)" }
+
+      Write-Host ("  {0,-20} {1}{2}{3}" -f $comp.Name, $comp.Description, $source, $stars)
+    }
+    Write-Host ""
+  }
+
+  Write-Host "Install everything: .\scripts\skillkit.ps1 install --target C:\code\repo"
+  Write-Host "Install by category: .\scripts\skillkit.ps1 install --target C:\code\repo --category workflow"
+  Write-Host "Install by source:   .\scripts\skillkit.ps1 install --target C:\code\repo --source bundled"
+  Write-Host ""
+}
+
+function Cmd-ListCategories {
+  Write-Host ""
+  Write-Host "Available Categories:"
+  Write-Host ""
+
+  foreach ($category in Get-Categories) {
+    $count = (Read-Catalog | Where-Object { $_.Category -eq $category }).Count
+    Write-Host ("  {0,-12} ({1} components)" -f $category, $count)
+  }
+  Write-Host ""
+}
+
+function Filter-Catalog {
+  param([string]$SourceFilter = "", [string]$CategoryFilter = "")
+
+  $result = Read-Catalog
+  if ($SourceFilter) { $result = $result | Where-Object { $_.Source -eq $SourceFilter } }
+  if ($CategoryFilter) { $result = $result | Where-Object { $_.Category -eq $CategoryFilter } }
+  return $result
+}
+
+function Cmd-Install {
   param(
-    [Parameter(Mandatory = $true)][string]$Value,
-    [Parameter(Mandatory = $true)][string]$Kind
+    [string]$Target = "",
+    [string]$SourceFilter = "",
+    [string]$CategoryFilter = ""
   )
 
-  if ($Value -eq "all") {
-    if ($Kind -eq "skill") {
-      return @(Get-AllSkills)
+  if (-not $Target) {
+    Write-Error "--target is required"
+    Show-Usage
+    exit 1
+  }
+
+  $Target = (Resolve-Path $Target).Path
+  New-Item -ItemType Directory -Path $Target -Force | Out-Null
+
+  Write-Host "Installing Portable AI Skillkit to $Target"
+
+  $components = Filter-Catalog -SourceFilter $SourceFilter -CategoryFilter $CategoryFilter
+
+  if ($components.Count -eq 0) {
+    Write-Host "No components match the filter (source=$SourceFilter, category=$CategoryFilter)"
+    return
+  }
+
+  $bundledCount = ($components | Where-Object { $_.Source -eq "bundled" }).Count
+  $externalCount = ($components | Where-Object { $_.Source -eq "external" }).Count
+
+  Write-Host "  Bundled: $bundledCount"
+  Write-Host "  External: $externalCount"
+  Write-Host ""
+
+  if ($bundledCount -gt 0) {
+    Write-Host "→ Installing bundled components..."
+    foreach ($comp in ($components | Where-Object { $_.Source -eq "bundled" } | Sort-Object Name)) {
+      $skillPath = Join-Path $Root "skills/$($comp.Name)/SKILL.md"
+      if (Test-Path $skillPath) {
+        $destDir = Join-Path $Target ".ai/skillkit/skills"
+        New-Item -ItemType Directory -Path $destDir -Force | Out-Null
+        Copy-Item -Path $skillPath -Destination (Join-Path $destDir "$($comp.Name).md") -Force
+        Write-Host "  ✓ $($comp.Name) - $($comp.Description)"
+      }
     }
-
-    return @("shared", "codex", "claude", "opencode", "github", "pi")
   }
 
-  return @(
-    $Value -split "," |
-      ForEach-Object { $_.Trim() } |
-      Where-Object { $_ -ne "" }
-  )
-}
-
-function Resolve-Skills {
-  param([Parameter(Mandatory = $true)][string]$Csv)
-
-  $resolved = @(Resolve-Csv -Value $Csv -Kind "skill")
-  foreach ($skill in $resolved) {
-    $skillPath = Join-Path $Root "skills/$skill/SKILL.md"
-    if (-not (Test-Path -LiteralPath $skillPath)) {
-      throw "Unknown skill: $skill"
+  if ($externalCount -gt 0) {
+    Write-Host ""
+    Write-Host "→ Installing external components..."
+    foreach ($comp in ($components | Where-Object { $_.Source -eq "external" } | Sort-Object Name)) {
+      if ($comp.InstallCommand -and $comp.InstallCommand -ne "-") {
+        Write-Host "  → $($comp.Name) ($($comp.Description))"
+        Write-Host "    Running: $($comp.InstallCommand)"
+        try {
+          Invoke-Expression $comp.InstallCommand
+          Write-Host "  ✓ $($comp.Name) installed"
+        }
+        catch {
+          Write-Warning "  ⚠ $($comp.Name) installation failed (non-fatal): $_"
+        }
+      }
     }
   }
 
-  return $resolved
-}
+  Write-SharedIndex -Target $Target -Components $components
 
-function Resolve-Agents {
-  param([Parameter(Mandatory = $true)][string]$Csv)
-
-  return @(Resolve-Csv -Value $Csv -Kind "agent")
-}
-
-function Update-ManagedBlock {
-  param(
-    [Parameter(Mandatory = $true)][string]$File,
-    [Parameter(Mandatory = $true)][string]$Body
-  )
-
-  $dir = Split-Path -Parent $File
-  if ($dir) {
-    New-Item -ItemType Directory -Force -Path $dir | Out-Null
-  }
-
-  $existing = ""
-  if (Test-Path -LiteralPath $File) {
-    $existing = Get-Content -Raw -Path $File
-  }
-
-  $pattern = "(?s)\r?\n?$([regex]::Escape($MarkBegin)).*?$([regex]::Escape($MarkEnd))\r?\n?"
-  $clean = [regex]::Replace($existing, $pattern, "")
-  $content = $clean.TrimEnd() + "`n`n$MarkBegin`n$Body`n$MarkEnd`n"
-
-  Set-Content -Path $File -Value $content -NoNewline -Encoding utf8
+  Write-Host ""
+  Write-Host "✓ Installation complete"
+  Write-Host "  Skills installed in: $Target/.ai/skillkit/"
 }
 
 function Write-SharedIndex {
   param(
-    [Parameter(Mandatory = $true)][string]$Target,
-    [Parameter(Mandatory = $true)][string[]]$Skills
+    [string]$Target,
+    [array]$Components
   )
 
   $sharedDir = Join-Path $Target ".ai/skillkit"
-  $skillsDir = Join-Path $sharedDir "skills"
-  New-Item -ItemType Directory -Force -Path $skillsDir | Out-Null
+  $index = Join-Path $sharedDir "AGENTS.md"
+  New-Item -ItemType Directory -Path $sharedDir -Force | Out-Null
 
-  $lines = [System.Collections.Generic.List[string]]::new()
-  $lines.Add("# AI Skillkit")
-  $lines.Add("")
-  $lines.Add("Shared instructions installed from Portable AI Skillkit.")
-  $lines.Add("")
-  $lines.Add("## Active Skills")
-  $lines.Add("")
+  $lines = @()
+  $lines += "# AI Skillkit"
+  $lines += ""
+  $lines += "Shared instructions installed from Portable AI Skillkit."
+  $lines += ""
+  $lines += "## Active Components"
+  $lines += ""
 
-  foreach ($skill in $Skills) {
-    Copy-Item -Path (Join-Path $Root "skills/$skill/SKILL.md") -Destination (Join-Path $skillsDir "$skill.md") -Force
-    $lines.Add("- ``$skill``: $(Get-SkillDescription -Skill $skill)")
-  }
-
-  $lines.Add("")
-  $lines.Add("## Usage")
-  $lines.Add("")
-  $lines.Add("When the user names one of the active skills, follow its instructions from ``.ai/skillkit/skills/<skill>.md``.")
-  $lines.Add("For normal coding work, default to ``control-first`` when it is installed.")
-  $lines.Add("")
-  $lines.Add("## External Skills (Install Separately)")
-  $lines.Add("")
-  $lines.Add("The following skills are sourced from actively maintained external repositories:")
-  $lines.Add("")
-  $lines.Add("- ``caveman``: Ultra-compressed communication (JuliusBrussee/caveman)")
-  $lines.Add("  Install: npx skills add JuliusBrussee/caveman")
-  $lines.Add("")
-  $lines.Add("- ``grill-me``: One-question-at-a-time requirement interrogation (mattpocock/skills)")
-  $lines.Add("  Install: npx skills add mattpocock/skills --skill grill-me")
-  $lines.Add("")
-  $lines.Add("- ``codeburn``: Token/cost observability dashboard (AgentSeal/CodeBurn)")
-  $lines.Add("  Install: npm install -g codeburn")
-  $lines.Add("")
-  $lines.Add("- ``plannotator``: Visual plan/diff review (backnotprop/plannotator)")
-  $lines.Add("  Install: curl.exe -s https://plannotator.ai/install.sh | sh")
-  $lines.Add("")
-  $lines.Add("- ``context-audit``: Context bloat detection (sanjeed5/ctxaudit)")
-  $lines.Add("  Install: npm install -g ctxaudit")
-  $lines.Add("")
-  $lines.Add("Run ``.\scripts\install-external.ps1`` to install all external skills.")
-
-  Set-Content -Path (Join-Path $sharedDir "AGENTS.md") -Value ($lines -join "`n") -Encoding utf8
-}
-
-function Install-StackDocs {
-  param([Parameter(Mandatory = $true)][string]$Target)
-
-  $sharedDir = Join-Path $Target ".ai/skillkit"
-  $componentsDir = Join-Path $sharedDir "components"
-  $stacksDir = Join-Path $sharedDir "stacks"
-
-  New-Item -ItemType Directory -Force -Path $componentsDir, $stacksDir | Out-Null
-  Copy-Item -Path (Join-Path $Root "stacks/control-first.md") -Destination (Join-Path $stacksDir "control-first.md") -Force
-  Copy-Item -Path (Join-Path $Root "components/*.md") -Destination $componentsDir -Force
-}
-
-function Install-Shared {
-  param(
-    [Parameter(Mandatory = $true)][string]$Target,
-    [Parameter(Mandatory = $true)][string[]]$Skills
-  )
-
-  $lines = [System.Collections.Generic.List[string]]::new()
-  $lines.Add("## AI Skillkit")
-  $lines.Add("Follow the shared instructions in ``.ai/skillkit/AGENTS.md``.")
-  $lines.Add("")
-  $lines.Add("Active skills:")
-
-  foreach ($skill in $Skills) {
-    $lines.Add("- ``$skill``: .ai/skillkit/skills/$skill.md")
-  }
-
-  Update-ManagedBlock -File (Join-Path $Target "AGENTS.md") -Body ($lines -join "`n")
-}
-
-function Install-Claude {
-  param([Parameter(Mandatory = $true)][string]$Target)
-
-  $body = "@.ai/skillkit/AGENTS.md`n`nUse the shared AI Skillkit instructions above. For risky work, prefer a short plan before edits."
-  Update-ManagedBlock -File (Join-Path $Target "CLAUDE.md") -Body $body
-}
-
-function Install-GitHub {
-  param([Parameter(Mandatory = $true)][string]$Target)
-
-  $body = "Follow the repository AI Skillkit instructions in ``.ai/skillkit/AGENTS.md`` and ``AGENTS.md``.`n`nKeep changes narrowly scoped, preserve existing project conventions, run relevant tests, and summarize verification."
-  Update-ManagedBlock -File (Join-Path $Target ".github/copilot-instructions.md") -Body $body
-}
-
-function Install-OpenCode {
-  param([Parameter(Mandatory = $true)][string]$Target)
-
-  $body = "Follow ``../AGENTS.md`` and ``.ai/skillkit/AGENTS.md`` for project behavior.`n`nUse installed skills from ``.ai/skillkit/skills/`` when the user names them."
-  Update-ManagedBlock -File (Join-Path $Target ".opencode/AGENTS.md") -Body $body
-}
-
-function Install-Codex {
-  param(
-    [Parameter(Mandatory = $true)][string]$Target,
-    [Parameter(Mandatory = $true)][string[]]$Skills
-  )
-
-  foreach ($skill in $Skills) {
-    $dir = Join-Path $Target ".codex/skills/$skill"
-    New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    Copy-Item -Path (Join-Path $Root "skills/$skill/SKILL.md") -Destination (Join-Path $dir "SKILL.md") -Force
-  }
-}
-
-function Install-Pi {
-  param(
-    [Parameter(Mandatory = $true)][string]$Target,
-    [Parameter(Mandatory = $true)][string[]]$Skills
-  )
-
-  foreach ($skill in $Skills) {
-    $dir = Join-Path $Target ".pi/skills/$skill"
-    New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    Copy-Item -Path (Join-Path $Root "skills/$skill/SKILL.md") -Destination (Join-Path $dir "SKILL.md") -Force
-  }
-}
-
-function Parse-Options {
-  param([string[]]$Items)
-
-  $parsed = @{}
-  $i = 0
-  while ($i -lt $Items.Count) {
-    $key = $Items[$i]
-    if ($key -in @("--target", "-target", "-Target")) {
-      if ($i + 1 -ge $Items.Count) { throw "Missing value for $key" }
-      $parsed["target"] = $Items[$i + 1]
-      $i += 2
-      continue
-    }
-    if ($key -in @("--skills", "-skills", "-Skills")) {
-      if ($i + 1 -ge $Items.Count) { throw "Missing value for $key" }
-      $parsed["skills"] = $Items[$i + 1]
-      $i += 2
-      continue
-    }
-    if ($key -in @("--agents", "-agents", "-Agents")) {
-      if ($i + 1 -ge $Items.Count) { throw "Missing value for $key" }
-      $parsed["agents"] = $Items[$i + 1]
-      $i += 2
-      continue
-    }
-    if ($key -in @("--output", "-output", "-Output")) {
-      if ($i + 1 -ge $Items.Count) { throw "Missing value for $key" }
-      $parsed["output"] = $Items[$i + 1]
-      $i += 2
-      continue
-    }
-    if ($key -in @("--help", "-help", "-h")) {
-      $parsed["help"] = "true"
-      $i += 1
-      continue
-    }
-
-    throw "Unknown option: $key"
-  }
-
-  return $parsed
-}
-
-function Invoke-List {
-  foreach ($skill in Get-AllSkills) {
-    "$skill`t$(Get-SkillDescription -Skill $skill)"
-  }
-}
-
-function Invoke-ListComponents {
-  foreach ($component in Get-AllComponents) {
-    "$component`tcomponents/$component.md"
-  }
-}
-
-function Invoke-ListExternal {
-  "External Skills (sourced from GitHub):"
-  ""
-  foreach ($skill in $ExternalSkills.Keys | Sort-Object) {
-    $data = $ExternalSkills[$skill]
-    "  $skill"
-    "    Description: $($data.Description)"
-    "    Source: $($data.Url)"
-    ""
-  }
-}
-
-function Invoke-InstallExternal {
-  param([string[]]$Items)
-
-  $skillsCsv = "all"
-  $i = 0
-  while ($i -lt $Items.Count) {
-    if ($Items[$i] -in @("--skills", "-skills", "-Skills")) {
-      if ($i + 1 -ge $Items.Count) { throw "Missing value for --skills" }
-      $skillsCsv = $Items[$i + 1]
-      $i += 2
-      continue
-    }
-    if ($Items[$i] -in @("--help", "-help", "-h")) {
-      "Usage: skillkit.ps1 install-external [--skills all|skill1,skill2,...]"
-      ""
-      "Installs external skills from actively maintained GitHub repositories."
-      ""
-      "Available skills:"
-      foreach ($skill in $ExternalSkills.Keys | Sort-Object) {
-        $data = $ExternalSkills[$skill]
-        "  - $skill`: $($data.Description)"
+  $prevCat = ""
+  foreach ($comp in ($Components | Sort-Object Category, Name)) {
+    if ($comp.Category -ne $prevCat) {
+      switch ($comp.Category) {
+        "workflow" { $lines += "### ⚡ Workflows" }
+        "command"  { $lines += "### 🎯 Commands" }
+        "tool"     { $lines += "### 🔧 Tools" }
+        "agent"    { $lines += "### 🤖 Agents" }
+        default    { $lines += "### $($comp.Category)" }
       }
-      return
+      $prevCat = $comp.Category
     }
-    throw "Unknown option: $($Items[$i])"
+
+    $srcTag = ""
+    if ($comp.Source -eq "external") { $srcTag = " [external]" }
+    $lines += "- ``$($comp.Name)``$srcTag: $($comp.Description)"
   }
 
-  $skillsToInstall = if ($skillsCsv -eq "all") { @($ExternalSkills.Keys) } else { @($skillsCsv -split ",") }
+  $lines += ""
+  $lines += "## Usage"
+  $lines += ""
+  $lines += "Components are organized by category."
+  $lines += "For normal coding work, default to workflow components when available."
 
-  foreach ($skill in $skillsToInstall) {
-    $skill = $skill.Trim()
-    if (-not $ExternalSkills.ContainsKey($skill)) {
-      "Unknown external skill: $skill" | Write-Error
-      continue
-    }
-
-    $data = $ExternalSkills[$skill]
-    "Installing external skill: $skill"
-    "Command: $($data.Command)"
-
-    try {
-      Invoke-Expression $data.Command
-      "Successfully installed: $skill"
-    } catch {
-      "Failed to install $skill`: $_" | Write-Error
-    }
-    ""
-  }
+  $lines | Out-File -FilePath $index -Encoding utf8
 }
 
-function Invoke-Install {
-  param([string[]]$Items)
+function Cmd-Export {
+  param([string]$Output = "")
 
-  $options = Parse-Options -Items $Items
-  if ($options.ContainsKey("help")) {
+  if (-not $Output) {
+    Write-Error "--output is required"
     Show-Usage
-    return
+    exit 1
   }
 
-  $target = if ($options.ContainsKey("target")) { $options["target"] } else { (Get-Location).Path }
-  $skillsCsv = if ($options.ContainsKey("skills")) { $options["skills"] } else { "all" }
-  $agentsCsv = if ($options.ContainsKey("agents")) { $options["agents"] } else { "all" }
+  New-Item -ItemType Directory -Path $Output -Force | Out-Null
+  $Output = (Resolve-Path $Output).Path
 
-  New-Item -ItemType Directory -Force -Path $target | Out-Null
+  Write-Host "Exporting Portable AI Skillkit to $Output"
 
-  $skills = @(Resolve-Skills -Csv $skillsCsv)
-  $agents = @(Resolve-Agents -Csv $agentsCsv)
+  Copy-Item -Path $Catalog -Destination (Join-Path $Output "catalog.tsv") -Force
 
-  Write-SharedIndex -Target $target -Skills $skills
-  Install-StackDocs -Target $target
+  $skillsDir = Join-Path $Root "skills"
+  if (Test-Path $skillsDir) {
+    Copy-Item -Path $skillsDir -Destination (Join-Path $Output "skills") -Recurse -Force
+  }
 
-  foreach ($agent in $agents) {
-    switch ($agent) {
-      "shared" { Install-Shared -Target $target -Skills $skills }
-      "codex" { Install-Codex -Target $target -Skills $skills }
-      "claude" { Install-Claude -Target $target }
-      "opencode" { Install-OpenCode -Target $target }
-      "github" { Install-GitHub -Target $target }
-      "pi" { Install-Pi -Target $target -Skills $skills }
-      default { throw "Unknown agent: $agent" }
+  $scriptsDir = Join-Path $Output "scripts"
+  New-Item -ItemType Directory -Path $scriptsDir -Force | Out-Null
+  Copy-Item -Path (Join-Path $Root "scripts/skillkit.sh") -Destination $scriptsDir -Force
+  Copy-Item -Path (Join-Path $Root "scripts/skillkit.ps1") -Destination $scriptsDir -Force
+
+  foreach ($doc in @("README.md", "AGENTS.md", "PHILOSOPHY.md", "MIGRATION.md")) {
+    $docPath = Join-Path $Root $doc
+    if (Test-Path $docPath) {
+      Copy-Item -Path $docPath -Destination (Join-Path $Output $doc) -Force
     }
   }
 
-  "Installed $($skills.Count) skill(s) for agents: $($agents -join ',')"
-  "Target: $target"
+  Write-Host "✓ Exported to $Output"
 }
 
-function Invoke-Export {
-  param([string[]]$Items)
-
-  $options = Parse-Options -Items $Items
-  if ($options.ContainsKey("help")) {
-    Show-Usage
-    return
-  }
-  if (-not $options.ContainsKey("output")) {
-    throw "Missing required --output PATH"
-  }
-
-  $output = $options["output"]
-  $skillsCsv = if ($options.ContainsKey("skills")) { $options["skills"] } else { "all" }
-  $skills = @(Resolve-Skills -Csv $skillsCsv)
-
-  New-Item -ItemType Directory -Force -Path (Join-Path $output "skills"), (Join-Path $output "scripts"), (Join-Path $output "components"), (Join-Path $output "stacks") | Out-Null
-  Copy-Item -Path (Join-Path $Root "README.md") -Destination (Join-Path $output "README.md") -Force
-  Copy-Item -Path (Join-Path $Root "AGENTS.md") -Destination (Join-Path $output "AGENTS.md") -Force
-  Copy-Item -Path (Join-Path $Root "scripts/skillkit.sh") -Destination (Join-Path $output "scripts/skillkit.sh") -Force
-  Copy-Item -Path (Join-Path $Root "scripts/install.sh") -Destination (Join-Path $output "scripts/install.sh") -Force
-  Copy-Item -Path (Join-Path $Root "scripts/export.sh") -Destination (Join-Path $output "scripts/export.sh") -Force
-  Copy-Item -Path (Join-Path $Root "scripts/skillkit.ps1") -Destination (Join-Path $output "scripts/skillkit.ps1") -Force
-  Copy-Item -Path (Join-Path $Root "scripts/install.ps1") -Destination (Join-Path $output "scripts/install.ps1") -Force
-  Copy-Item -Path (Join-Path $Root "scripts/export.ps1") -Destination (Join-Path $output "scripts/export.ps1") -Force
-  Copy-Item -Path (Join-Path $Root "stacks/control-first.md") -Destination (Join-Path $output "stacks/control-first.md") -Force
-  Copy-Item -Path (Join-Path $Root "components/*.md") -Destination (Join-Path $output "components") -Force
-
-  foreach ($skill in $skills) {
-    $dir = Join-Path $output "skills/$skill"
-    New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    Copy-Item -Path (Join-Path $Root "skills/$skill/SKILL.md") -Destination (Join-Path $dir "SKILL.md") -Force
-  }
-
-  "Exported $($skills.Count) skill(s) to $output"
-}
-
-$command = if ($args.Count -gt 0) { $args[0] } else { "help" }
-$rest = if ($args.Count -gt 1) { $args[1..($args.Count - 1)] } else { @() }
+# Main command dispatcher
+$command = $args[0]
+$remaining = $args[1..$args.Length]
 
 switch ($command) {
-  "list" { Invoke-List }
-  "list-components" { Invoke-ListComponents }
-  "list-external" { Invoke-ListExternal }
-  "install" { Invoke-Install -Items $rest }
-  "install-external" { Invoke-InstallExternal -Items $rest }
-  "export" { Invoke-Export -Items $rest }
-  { $_ -in @("help", "-h", "--help") } { Show-Usage }
+  "list" {
+    Cmd-List
+  }
+  "list-categories" {
+    Cmd-ListCategories
+  }
+  "install" {
+    $target = ""
+    $sourceFilter = ""
+    $categoryFilter = ""
+
+    for ($i = 0; $i -lt $remaining.Length; $i++) {
+      switch ($remaining[$i]) {
+        "--target" { $target = $remaining[++$i] }
+        "--source" { $sourceFilter = $remaining[++$i] }
+        "--category" { $categoryFilter = $remaining[++$i] }
+      }
+    }
+
+    Cmd-Install -Target $target -SourceFilter $sourceFilter -CategoryFilter $categoryFilter
+  }
+  "export" {
+    $output = ""
+    for ($i = 0; $i -lt $remaining.Length; $i++) {
+      if ($remaining[$i] -eq "--output") { $output = $remaining[++$i] }
+    }
+    Cmd-Export -Output $output
+  }
   default {
-    throw "Unknown command: $command"
+    Show-Usage
+    exit 1
   }
 }
