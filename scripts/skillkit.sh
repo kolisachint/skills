@@ -606,8 +606,8 @@ cmd_install() {
     exit 1
   fi
 
-  target="$(cd "$target" && pwd)"
   mkdir -p "$target"
+  target="$(cd "$target" && pwd)"
 
   printf 'Installing Portable AI Skillkit to %s\n' "$target"
 

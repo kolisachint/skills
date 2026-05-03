@@ -2,33 +2,70 @@
 
 Curated components for coding agents, organized by how you use them, where you use them, and who they're for.
 
-## Quick Start
+## Install in One Line
 
-### macOS / Linux
+### macOS / Linux (curl — no clone needed)
 
 ```bash
-# Install everything
-./scripts/skillkit.sh install --target ~/repo
-
-# Or install with precise filters
-./scripts/skillkit.sh install --target ~/repo --source internal --category workflow
-./scripts/skillkit.sh install --target ~/repo --platform pi
-./scripts/skillkit.sh install --target ~/repo --agent-target codex
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo
 ```
 
-### Windows
+Or with filters:
+```bash
+# Internal skills only (no external CLI tools)
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --source internal
+
+# Only workflow components for Codex
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --category workflow --agent-target codex
+```
+
+### Windows (PowerShell — no clone needed)
 
 ```powershell
-# Install everything
-.\scripts\skillkit.ps1 install --target C:\code\repo
-
-# Or install with precise filters
-.\scripts\skillkit.ps1 install --target C:\code\repo --source internal --category workflow
-.\scripts\skillkit.ps1 install --target C:\code\repo --platform pi
-.\scripts\skillkit.ps1 install --target C:\code\repo --agent-target codex
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex
 ```
 
-### See What's Available
+### Or clone and run
+
+```bash
+git clone https://github.com/kolisachint/skills.git /tmp/skills
+bash /tmp/skills/install.sh --target ~/repo
+```
+
+---
+
+## Quick Start (already cloned)
+
+### Install everything
+
+```bash
+# macOS / Linux
+./install.sh --target ~/repo
+
+# Windows
+.\install.ps1 --target C:\code\repo
+```
+
+### Install with filters
+
+```bash
+# Only internal components (fast, no external deps)
+./install.sh --target ~/repo --source internal
+
+# Only workflow components
+./install.sh --target ~/repo --category workflow
+
+# Only Pi-compatible components
+./install.sh --target ~/repo --platform pi
+
+# Only Codex-targeted agents/workflows
+./install.sh --target ~/repo --agent-target codex
+
+# Combined: internal workflows for Codex
+./install.sh --target ~/repo --source internal --category workflow --platform codex
+```
+
+### Discover what's available
 
 ```bash
 # List all components grouped by category & source
@@ -42,9 +79,12 @@ Curated components for coding agents, organized by how you use them, where you u
 
 # Search by keyword (name, description, category, agent target)
 ./scripts/skillkit.sh search review
+./scripts/skillkit.sh search codex
+./scripts/skillkit.sh search debug
 
-# Top starred external skills
-./scripts/skillkit.sh top 5
+# Top-N starred external components
+./scripts/skillkit.sh top        # default top 10
+./scripts/skillkit.sh top 5      # top 5 only
 ```
 
 ## Curated Components
@@ -95,9 +135,7 @@ Curated components for coding agents, organized by how you use them, where you u
 
 ---
 
-## Installation Guide
-
-### Dimensions
+## Installation Dimensions
 
 Every installation can be filtered across four dimensions:
 
@@ -106,110 +144,13 @@ Every installation can be filtered across four dimensions:
 3. **Platform** — `opencode`, `pi`, `copilot`, `codex`, `claude`
 4. **Agent Target** — `all` or a specific agent/platform name
 
-### Install Everything
-
-Installs all internal and external components:
-
-**macOS:**
-```bash
-./scripts/skillkit.sh install --target ~/repo
-```
-
-**Windows:**
-```powershell
-.\scripts\skillkit.ps1 install --target C:\code\repo
-```
-
-### Install by Source
-
-Internal only (no external CLI tools installed):
-
-```bash
-./scripts/skillkit.sh install --target ~/repo --source internal
-```
-
-External only:
-
-```bash
-./scripts/skillkit.sh install --target ~/repo --source external
-```
-
-### Install by Category
-
-```bash
-./scripts/skillkit.sh install --target ~/repo --category workflow
-./scripts/skillkit.sh install --target ~/repo --category agent
-./scripts/skillkit.sh install --target ~/repo --category prompt
-```
-
-### Install by Platform
-
-Install only components compatible with a specific platform:
-
-```bash
-./scripts/skillkit.sh install --target ~/repo --platform pi
-./scripts/skillkit.sh install --target ~/repo --platform codex
-./scripts/skillkit.sh install --target ~/repo --platform copilot
-```
-
 When platform directories already exist in the target, the installer
 auto-detects them. Use `--platform` to force installation to a specific
 platform even if its directory doesn't exist yet.
 
-### Install by Agent Target
-
-Install only agent-specific workflows:
-
-```bash
-./scripts/skillkit.sh install --target ~/repo --agent-target codex
-./scripts/skillkit.sh install --target ~/repo --agent-target copilot
-```
-
-### Combine Filters
-
-```bash
-# Internal workflows only
-./scripts/skillkit.sh install --target ~/repo --source internal --category workflow
-
-# Codex-specific agents and workflows
-./scripts/skillkit.sh install --target ~/repo --platform codex --agent-target codex
-
-# Copilot agents only
-./scripts/skillkit.sh install --target ~/repo --category agent --platform copilot
-```
-
-### Search & Discover
-
-When you're not sure what's available or want to find the best-rated skills:
-
-```bash
-# Search by keyword (matches name, description, category, agent target)
-./scripts/skillkit.sh search review
-./scripts/skillkit.sh search codex
-./scripts/skillkit.sh search debug
-
-# Top-N starred external components
-./scripts/skillkit.sh top        # default top 10
-./scripts/skillkit.sh top 5      # top 5 only
-```
-
-### Export a Portable Bundle
-
-**macOS:**
-```bash
-./scripts/skillkit.sh export --output ./dist
-```
-
-**Windows:**
-```powershell
-.\scripts\skillkit.ps1 export --output .\dist
-```
-
 ---
 
 ## What Gets Installed
-
-When you run the install command, files are created in your target project:
 
 ### Shared (all installations)
 
@@ -270,9 +211,12 @@ Core beliefs:
 
 | File | Purpose |
 |------|---------|
+| `install.sh` | One-shot installer (can be curled) |
+| `install.ps1` | One-shot installer for Windows |
 | `catalog.tsv` | Single source of truth for all components |
 | `PHILOSOPHY.md` | Curator's manifesto and design principles |
 | `docs/WHY_THESE_TOOLS.md` | Comparison with alternatives |
+| `docs/REFERENCES.md` | Platform documentation links |
 | `MIGRATION.md` | Upgrade guide from previous versions |
 | `skills/` | Internal component definitions |
 | `scripts/skillkit.sh` | Unified CLI for macOS/Linux |

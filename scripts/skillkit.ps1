@@ -561,8 +561,8 @@ function Cmd-Install {
     exit 1
   }
 
-  $Target = (Resolve-Path $Target).Path
   New-Item -ItemType Directory -Path $Target -Force | Out-Null
+  $Target = (Resolve-Path $Target).Path
 
   Write-Host "Installing Portable AI Skillkit to $Target"
 
