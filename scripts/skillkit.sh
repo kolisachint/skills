@@ -465,9 +465,36 @@ install_external() {
   # project-local .agents/skills/ and platform symlinks in the right place.
   if (cd "$target" && eval "$install_cmd"); then
     printf '  ✓ %s installed\n' "$name"
+    # Post-process: if npm package installed skills into node_modules, copy them
+    # to .agents/skills/ so they're discoverable without relying on home-dir symlinks
+    _copy_npm_skills "$target"
   else
     printf '  ⚠ %s installation failed (non-fatal)\n' "$name" >&2
   fi
+}
+
+# Copy skills from node_modules/<pkg>/skills/ to .agents/skills/
+_copy_npm_skills() {
+  local target="$1"
+  local nm="$target/node_modules"
+  [[ -d "$nm" ]] || return 0
+
+  local pkg
+  for pkg in "$nm"/* "$nm"/@*/*; do
+    [[ -d "$pkg/skills" ]] || continue
+    local skill_dir="$target/.agents/skills"
+    mkdir -p "$skill_dir"
+    local skill_name
+    for skill_name in "$pkg/skills"/*; do
+      [[ -d "$skill_name" ]] || continue
+      local basename_skill
+      basename_skill=$(basename "$skill_name")
+      if [[ ! -e "$skill_dir/$basename_skill" ]]; then
+        cp -r "$skill_name" "$skill_dir/$basename_skill"
+        printf '    📦 copied skill: %s\n' "$basename_skill"
+      fi
+    done
+  done
 }
 
 # ---------------------------------------------------------------------------
@@ -710,6 +737,26 @@ cmd_install() {
       [[ -z "$name" ]] && continue
       install_external "$target" "$name" "$description" "$install_cmd"
     done < <(printf '%s\n' "$components" | awk -F'\t' '$3=="external"')
+  fi
+
+  # Symlink .agents/skills/ into platform-specific directories so agents can find them
+  if [[ -d "$target/.agents/skills" ]]; then
+    local plat
+    for plat in $active_platforms; do
+      local plat_dir
+      plat_dir=$(platform_skill_dir "$plat" "$target")
+      [[ -n "$plat_dir" ]] || continue
+      mkdir -p "$plat_dir"
+      local skill_name
+      for skill_name in "$target/.agents/skills"/*; do
+        [[ -d "$skill_name" ]] || continue
+        local bn
+        bn=$(basename "$skill_name")
+        if [[ ! -e "$plat_dir/$bn" ]]; then
+          ln -s "../../.agents/skills/$bn" "$plat_dir/$bn" 2>/dev/null || cp -r "$skill_name" "$plat_dir/$bn"
+        fi
+      done
+    done
   fi
 
   # Generate indices

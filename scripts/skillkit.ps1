@@ -421,10 +421,41 @@ function Install-External {
     Invoke-Expression $Component.InstallCommand
     Set-Location $origDir
     Write-Host "  ✓ $($Component.Name) installed"
+    # Post-process: copy skills from node_modules packages to .agents/skills/
+    Copy-NpmSkills -Target $Target
   }
   catch {
     Set-Location $origDir
     Write-Warning "  ⚠ $($Component.Name) installation failed (non-fatal): $_"
+  }
+}
+
+function Copy-NpmSkills {
+  param([string]$Target)
+
+  $nm = Join-Path $Target "node_modules"
+  if (-not (Test-Path $nm)) { return }
+
+  $skillDir = Join-Path $Target ".agents/skills"
+  New-Item -ItemType Directory -Path $skillDir -Force | Out-Null
+
+  # Check scoped and unscoped packages
+  $pkgs = Get-ChildItem -Path $nm -Directory -ErrorAction SilentlyContinue
+  $scoped = Get-ChildItem -Path $nm -Directory -Filter "@*" -ErrorAction SilentlyContinue
+  foreach ($scopeDir in $scoped) {
+    $pkgs += Get-ChildItem -Path $scopeDir.FullName -Directory -ErrorAction SilentlyContinue
+  }
+
+  foreach ($pkg in $pkgs) {
+    $pkgSkills = Join-Path $pkg.FullName "skills"
+    if (-not (Test-Path $pkgSkills)) { continue }
+    foreach ($skill in (Get-ChildItem -Path $pkgSkills -Directory -ErrorAction SilentlyContinue)) {
+      $dest = Join-Path $skillDir $skill.Name
+      if (-not (Test-Path $dest)) {
+        Copy-Item -Path $skill.FullName -Destination $dest -Recurse -Force
+        Write-Host "    📦 copied skill: $($skill.Name)"
+      }
+    }
   }
 }
 
@@ -632,6 +663,26 @@ function Cmd-Install {
     Write-Host "→ Installing external components..."
     foreach ($comp in ($components | Where-Object { $_.Source -eq "external" } | Sort-Object Name)) {
       Install-External -Target $Target -Component $comp
+    }
+  }
+
+  # Symlink .agents/skills/ into platform-specific directories
+  $agentsSkills = Join-Path $Target ".agents/skills"
+  if (Test-Path $agentsSkills) {
+    foreach ($plat in $activePlatforms) {
+      $platDir = Get-PlatformSkillDir -Platform $plat -Target $Target
+      if (-not $platDir) { continue }
+      New-Item -ItemType Directory -Path $platDir -Force | Out-Null
+      foreach ($skill in (Get-ChildItem -Path $agentsSkills -Directory -ErrorAction SilentlyContinue)) {
+        $platSkill = Join-Path $platDir $skill.Name
+        if (-not (Test-Path $platSkill)) {
+          $relPath = "../../.agents/skills/$($skill.Name)"
+          New-Item -ItemType SymbolicLink -Path $platSkill -Target $relPath -ErrorAction SilentlyContinue | Out-Null
+          if (-not (Test-Path $platSkill)) {
+            Copy-Item -Path $skill.FullName -Destination $platSkill -Recurse -Force
+          }
+        }
+      }
     }
   }
 
