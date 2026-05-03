@@ -41,7 +41,11 @@ cd skills
 ./install.sh --target ~/repo --platform pi
 ./install.sh --target ~/repo --agent-target codex
 
-# 4. Or run scripts directly
+# 4. Install specific skill(s) by name
+./install.sh --target ~/repo --skill control-first
+./install.sh --target ~/repo --skill control-first,local-inference,caveman
+
+# 5. Or run scripts directly
 ./scripts/skillkit.sh install --target ~/repo --source internal --category workflow
 ```
 
@@ -126,12 +130,13 @@ cd skills
 
 ## Installation Dimensions
 
-Every installation can be filtered across four dimensions:
+Every installation can be filtered across five dimensions:
 
 1. **Source** — `internal` (from this repo) or `external` (third-party)
 2. **Category** — `skill`, `prompt`, `command`, `tool`, `agent`, `workflow`
 3. **Platform** — `opencode`, `pi`, `copilot`, `codex`, `claude`
 4. **Agent Target** — `all` or a specific agent/platform name
+5. **Skill** — specific component name(s), comma-separated for multiple
 
 When platform directories already exist in the target, the installer
 auto-detects them. Use `--platform` to force installation to a specific

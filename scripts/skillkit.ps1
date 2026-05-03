@@ -21,6 +21,8 @@ Commands:
   .\scripts\skillkit.ps1 install --target PATH --category workflow     Install only workflow components
   .\scripts\skillkit.ps1 install --target PATH --platform pi           Install only Pi-compatible components
   .\scripts\skillkit.ps1 install --target PATH --agent-target codex    Install only Codex-targeted agents/workflows
+  .\scripts\skillkit.ps1 install --target PATH --skill control-first   Install a specific component by name
+  .\scripts\skillkit.ps1 install --target PATH --skill skill1,skill2   Install multiple specific components
   .\scripts\skillkit.ps1 export --output PATH          Export portable bundle
 
 Dimensions:
@@ -34,6 +36,8 @@ Examples:
   .\scripts\skillkit.ps1 install --target C:\code\repo
   .\scripts\skillkit.ps1 install --target C:\code\repo --source internal --category workflow
   .\scripts\skillkit.ps1 install --target C:\code\repo --platform copilot --agent-target copilot
+  .\scripts\skillkit.ps1 install --target C:\code\repo --skill control-first
+  .\scripts\skillkit.ps1 install --target C:\code\repo --skill caveman,grill-me
   .\scripts\skillkit.ps1 search review
   .\scripts\skillkit.ps1 top 5
 "@
@@ -67,7 +71,8 @@ function Filter-Catalog {
     [string]$SourceFilter = "",
     [string]$CategoryFilter = "",
     [string]$PlatformFilter = "",
-    [string]$AgentTargetFilter = ""
+    [string]$AgentTargetFilter = "",
+    [string]$SkillFilter = ""
   )
 
   $result = Read-Catalog
@@ -79,6 +84,10 @@ function Filter-Catalog {
     }
   }
   if ($AgentTargetFilter) { $result = $result | Where-Object { $_.AgentTarget -eq "all" -or $_.AgentTarget -eq $AgentTargetFilter } }
+  if ($SkillFilter) {
+    $skills = $SkillFilter -split ","
+    $result = $result | Where-Object { $skills -contains $_.Name }
+  }
   return $result
 }
 
@@ -552,7 +561,8 @@ function Cmd-Install {
     [string]$SourceFilter = "",
     [string]$CategoryFilter = "",
     [string]$PlatformFilter = "",
-    [string]$AgentTargetFilter = ""
+    [string]$AgentTargetFilter = "",
+    [string]$SkillFilter = ""
   )
 
   if (-not $Target) {
@@ -580,10 +590,10 @@ function Cmd-Install {
     Write-Host "Use --platform <name> to force platform-specific installation."
   }
 
-  $components = Filter-Catalog -SourceFilter $SourceFilter -CategoryFilter $CategoryFilter -PlatformFilter $PlatformFilter -AgentTargetFilter $AgentTargetFilter
+  $components = Filter-Catalog -SourceFilter $SourceFilter -CategoryFilter $CategoryFilter -PlatformFilter $PlatformFilter -AgentTargetFilter $AgentTargetFilter -SkillFilter $SkillFilter
 
   if ($components.Count -eq 0) {
-    Write-Host "No components match the filter (source=$SourceFilter, category=$CategoryFilter, platform=$PlatformFilter, agent=$AgentTargetFilter)"
+    Write-Host "No components match the filter (source=$SourceFilter, category=$CategoryFilter, platform=$PlatformFilter, agent=$AgentTargetFilter, skill=$SkillFilter)"
     return
   }
 
@@ -695,6 +705,7 @@ switch ($command) {
     $categoryFilter = ""
     $platformFilter = ""
     $agentTargetFilter = ""
+    $skillFilter = ""
 
     for ($i = 0; $i -lt $remaining.Length; $i++) {
       switch ($remaining[$i]) {
@@ -703,10 +714,11 @@ switch ($command) {
         "--category"     { $categoryFilter = $remaining[++$i] }
         "--platform"     { $platformFilter = $remaining[++$i] }
         "--agent-target" { $agentTargetFilter = $remaining[++$i] }
+        "--skill"        { $skillFilter = $remaining[++$i] }
       }
     }
 
-    Cmd-Install -Target $target -SourceFilter $sourceFilter -CategoryFilter $categoryFilter -PlatformFilter $platformFilter -AgentTargetFilter $agentTargetFilter
+    Cmd-Install -Target $target -SourceFilter $sourceFilter -CategoryFilter $categoryFilter -PlatformFilter $platformFilter -AgentTargetFilter $agentTargetFilter -SkillFilter $skillFilter
   }
   "export" {
     $output = ""

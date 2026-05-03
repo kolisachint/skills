@@ -26,6 +26,8 @@ Commands:
   skillkit.sh install --target PATH --category workflow     Install only workflow components
   skillkit.sh install --target PATH --platform pi           Install only Pi-compatible components
   skillkit.sh install --target PATH --agent-target codex    Install only Codex-targeted agents/workflows
+  skillkit.sh install --target PATH --skill control-first   Install a specific component by name
+  skillkit.sh install --target PATH --skill skill1,skill2   Install multiple specific components
   skillkit.sh export --output PATH          Export portable bundle
 
 Dimensions:
@@ -40,6 +42,8 @@ Examples:
   ./scripts/skillkit.sh install --target ~/repo --source internal --category workflow
   ./scripts/skillkit.sh install --target ~/repo --platform copilot --agent-target copilot
   ./scripts/skillkit.sh install --target ~/repo --category agent --platform codex
+  ./scripts/skillkit.sh install --target ~/repo --skill control-first
+  ./scripts/skillkit.sh install --target ~/repo --skill caveman,grill-me
   ./scripts/skillkit.sh search review
   ./scripts/skillkit.sh top 5
 EOF
@@ -56,8 +60,10 @@ catalog_filter() {
   local category_filter="${2:-}"
   local platform_filter="${3:-}"
   local agent_target_filter="${4:-}"
+  local skill_filter="${5:-}"
 
-  awk -F'\t' -v src="$source_filter" -v cat="$category_filter" -v plat="$platform_filter" -v agent="$agent_target_filter" '
+  awk -F'\t' -v src="$source_filter" -v cat="$category_filter" -v plat="$platform_filter" -v agent="$agent_target_filter" -v skill="$skill_filter" '
+    BEGIN { split(skill, skill_arr, ",") }
     /^#/ {next}
     $1=="name" {next}
     NF>=6 {
@@ -65,7 +71,15 @@ catalog_filter() {
       match_cat = (cat=="" || $2==cat)
       match_plat = (plat=="" || $4=="all" || $4==plat || $4 ~ ("(^|,)" plat "($|,)"))
       match_agent = (agent=="" || $5=="all" || $5==agent)
-      if (match_src && match_cat && match_plat && match_agent) {
+      match_skill = 0
+      if (skill=="") {
+        match_skill = 1
+      } else {
+        for (i in skill_arr) {
+          if ($1 == skill_arr[i]) { match_skill = 1; break }
+        }
+      }
+      if (match_src && match_cat && match_plat && match_agent && match_skill) {
         print $1"\t"$2"\t"$3"\t"$4"\t"$5"\t"$6"\t"$7"\t"$8
       }
     }
@@ -588,6 +602,7 @@ cmd_install() {
   local category_filter=""
   local platform_filter=""
   local agent_target_filter=""
+  local skill_filter=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -596,6 +611,7 @@ cmd_install() {
       --category) category_filter="$2"; shift 2 ;;
       --platform) platform_filter="$2"; shift 2 ;;
       --agent-target) agent_target_filter="$2"; shift 2 ;;
+      --skill) skill_filter="$2"; shift 2 ;;
       *) shift ;;
     esac
   done
@@ -628,11 +644,11 @@ cmd_install() {
 
   # Get filtered components
   local components
-  components=$(catalog_filter "$source_filter" "$category_filter" "$platform_filter" "$agent_target_filter")
+  components=$(catalog_filter "$source_filter" "$category_filter" "$platform_filter" "$agent_target_filter" "$skill_filter")
 
   if [[ -z "$components" ]]; then
-    printf 'No components match the filter (source=%s, category=%s, platform=%s, agent=%s)\n' \
-      "$source_filter" "$category_filter" "$platform_filter" "$agent_target_filter"
+    printf 'No components match the filter (source=%s, category=%s, platform=%s, agent=%s, skill=%s)\n' \
+      "$source_filter" "$category_filter" "$platform_filter" "$agent_target_filter" "$skill_filter"
     exit 0
   fi
 
