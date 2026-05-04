@@ -1,0 +1,192 @@
+#!/usr/bin/env bash
+# Add a new skill to catalog.tsv
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CATALOG="${SCRIPT_DIR}/catalog.tsv"
+
+usage() {
+  cat <<'EOF'
+Usage: add [options] <name>
+
+Add a new skill to the catalog.
+
+Options:
+  --category CAT         Category: skill, prompt, command, tool, agent, workflow
+  --platforms PLATFORMS  Comma-separated platforms (default: all)
+  --agent-target TARGET  Agent target (default: all)
+  --description DESC     Short description
+  --install-cmd CMD      Install command
+  --remove-cmd CMD       Remove command
+  --stars STARS          Star count (e.g., 90K, 5K)
+  --docs-url URL         Documentation URL
+  --github OWNER/REPO    GitHub repo (auto-generates install/remove/docs)
+  --npm PACKAGE          npm package (auto-generates install/remove)
+  -h, --help             Show this help
+
+Examples:
+  add my-skill --category skill --description "My skill" --github owner/repo
+  add my-tool --category tool --npm my-package --stars 1K
+  add my-skill --category skill --platforms "claude,pi" --description "Custom"
+
+Interactive mode (no flags):
+  add my-skill    # Will prompt for missing fields
+EOF
+}
+
+# Check if running in a terminal for interactive mode
+is_terminal() {
+  [[ -t 0 ]]
+}
+
+# Prompt for input
+prompt() {
+  local msg="$1"
+  local default="${2:-}"
+  if [[ -n "$default" ]]; then
+    read -rp "$msg [$default]: " val
+    echo "${val:-$default}"
+  else
+    read -rp "$msg: " val
+    echo "$val"
+  fi
+}
+
+# Parse arguments
+NAME=""
+CATEGORY=""
+PLATFORMS="all"
+AGENT_TARGET="all"
+DESCRIPTION=""
+INSTALL_CMD=""
+REMOVE_CMD=""
+STARS=""
+DOCS_URL=""
+GITHUB_REPO=""
+NPM_PACKAGE=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --category) CATEGORY="$2"; shift 2 ;;
+    --platforms) PLATFORMS="$2"; shift 2 ;;
+    --agent-target) AGENT_TARGET="$2"; shift 2 ;;
+    --description) DESCRIPTION="$2"; shift 2 ;;
+    --install-cmd) INSTALL_CMD="$2"; shift 2 ;;
+    --remove-cmd) REMOVE_CMD="$2"; shift 2 ;;
+    --stars) STARS="$2"; shift 2 ;;
+    --docs-url) DOCS_URL="$2"; shift 2 ;;
+    --github) GITHUB_REPO="$2"; shift 2 ;;
+    --npm) NPM_PACKAGE="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    --*) echo "Error: unknown flag $1" >&2; usage >&2; exit 1 ;;
+    *)
+      if [[ -z "$NAME" ]]; then
+        NAME="$1"
+      else
+        echo "Error: unexpected argument $1" >&2
+        exit 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+# Validate name
+if [[ -z "$NAME" ]]; then
+  echo "Error: skill name is required" >&2
+  usage >&2
+  exit 1
+fi
+
+# Check if already exists
+if [[ -f "$CATALOG" ]]; then
+  if grep -q "^$NAME\t" "$CATALOG" 2>/dev/null; then
+    echo "Error: skill '$NAME' already exists in catalog" >&2
+    exit 1
+  fi
+fi
+
+# Auto-generate from GitHub repo
+if [[ -n "$GITHUB_REPO" ]]; then
+  [[ ! "$GITHUB_REPO" =~ / ]] && { echo "Error: GitHub repo must be owner/repo format" >&2; exit 1; }
+  
+  [[ -z "$INSTALL_CMD" ]] && INSTALL_CMD="npx skills add $GITHUB_REPO --yes"
+  [[ -z "$REMOVE_CMD" ]] && REMOVE_CMD="npx skills remove $NAME --yes"
+  [[ -z "$DOCS_URL" ]] && DOCS_URL="https://github.com/$GITHUB_REPO"
+  [[ -z "$STARS" ]] && STARS="-"
+fi
+
+# Auto-generate from npm package
+if [[ -n "$NPM_PACKAGE" ]]; then
+  [[ -z "$INSTALL_CMD" ]] && INSTALL_CMD="npm install -g $NPM_PACKAGE"
+  [[ -z "$REMOVE_CMD" ]] && REMOVE_CMD="npm uninstall -g $NPM_PACKAGE"
+  [[ -z "$DOCS_URL" ]] && DOCS_URL="https://www.npmjs.com/package/$NPM_PACKAGE"
+  [[ -z "$STARS" ]] && STARS="-"
+fi
+
+# Interactive mode for missing fields
+if is_terminal; then
+  echo "Adding skill to catalog: $NAME"
+  echo ""
+  
+  [[ -z "$CATEGORY" ]] && CATEGORY=$(prompt "Category" "skill")
+  [[ -z "$DESCRIPTION" ]] && DESCRIPTION=$(prompt "Description")
+  [[ -z "$INSTALL_CMD" ]] && INSTALL_CMD=$(prompt "Install command")
+  [[ -z "$REMOVE_CMD" ]] && REMOVE_CMD=$(prompt "Remove command" "npx skills remove $NAME --yes")
+  [[ -z "$DOCS_URL" ]] && DOCS_URL=$(prompt "Docs URL")
+  [[ -z "$STARS" ]] && STARS=$(prompt "Stars" "-")
+fi
+
+# Validate required fields
+[[ -z "$CATEGORY" ]] && { echo "Error: --category is required" >&2; exit 1; }
+[[ -z "$DESCRIPTION" ]] && { echo "Error: --description is required" >&2; exit 1; }
+[[ -z "$INSTALL_CMD" ]] && { echo "Error: --install-cmd is required (or use --github or --npm)" >&2; exit 1; }
+
+# Default remove command
+[[ -z "$REMOVE_CMD" ]] && REMOVE_CMD="npx skills remove $NAME --yes"
+
+# Default stars
+[[ -z "$STARS" ]] && STARS="-"
+
+# Default docs URL
+[[ -z "$DOCS_URL" ]] && DOCS_URL="-"
+
+# Build catalog entry (tab-separated)
+ENTRY="$NAME\t$CATEGORY\texternal\t$PLATFORMS\t$AGENT_TARGET\t$DESCRIPTION\t$INSTALL_CMD\t$STARS\t$REMOVE_CMD\t$DOCS_URL"
+
+# Preview
+echo ""
+echo "=== Preview ==="
+echo "Name:         $NAME"
+echo "Category:     $CATEGORY"
+echo "Platforms:    $PLATFORMS"
+echo "Description:  $DESCRIPTION"
+echo "Install:      $INSTALL_CMD"
+echo "Remove:       $REMOVE_CMD"
+echo "Stars:        $STARS"
+echo "Docs:         $DOCS_URL"
+echo ""
+
+# Confirm
+if is_terminal; then
+  read -rp "Add to catalog? [y/N]: " confirm
+  [[ "$confirm" != "y" && "$confirm" != "Y" ]] && { echo "Cancelled"; exit 0; }
+fi
+
+# Add to catalog
+if [[ -f "$CATALOG" ]]; then
+  echo -e "$ENTRY" >> "$CATALOG"
+else
+  # Create new catalog with header
+  echo -e "name\tcategory\tsource\tplatforms\tagent_target\tdescription\tinstall_command\tstars\tremove_command\tdocs_url" > "$CATALOG"
+  echo -e "$ENTRY" >> "$CATALOG"
+fi
+
+echo ""
+echo "✓ Added '$NAME' to catalog"
+echo ""
+echo "Next steps:"
+echo "  1. Review the entry: cat catalog.tsv | grep $NAME"
+echo "  2. Commit the change: git add catalog.tsv && git commit -m \"Add $NAME to catalog\""
+echo "  3. Push to origin:    git push origin"

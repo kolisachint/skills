@@ -1,0 +1,227 @@
+#!/usr/bin/env bash
+# Install skills from catalog or directly from GitHub repos
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CATALOG="${SCRIPT_DIR}/catalog.tsv"
+
+# Platform-specific command transformation
+transform_command_for_platform() {
+  local cmd="$1"
+  local platform="${2:-}"
+
+  [[ -z "$platform" ]] && echo "$cmd" && return
+
+  case "$platform" in
+    opencode)
+      if [[ "$cmd" == "npx skills add"* ]]; then
+        [[ "$cmd" != *"-a opencode"* ]] && cmd="${cmd} -a opencode"
+        [[ "$cmd" != *"-g"* ]] && cmd="${cmd} -g"
+        [[ "$cmd" != *"-y"* && "$cmd" != *"--yes"* ]] && cmd="${cmd} -y"
+      fi
+      ;;
+    pi)
+      if [[ "$cmd" == "npm install"* ]]; then
+        local pkg="${cmd#npm install }"
+        pkg="${pkg#"${pkg%%[![:space:]]*}"}"
+        pkg="${pkg%"${pkg##*[![:space:]]}"}"
+        [[ "$pkg" == *"pi-extension"* ]] && cmd="pi install npm:${pkg}"
+      fi
+      if [[ "$cmd" == "npx skills add"* ]]; then
+        local repo="${cmd#npx skills add }"
+        repo="${repo%% *}"
+        [[ "$repo" == */* ]] && cmd="pi install https://github.com/${repo}"
+      fi
+      ;;
+    codex)
+      if [[ "$cmd" == "npx skills add"* ]]; then
+        local repo="${cmd#npx skills add }"
+        repo="${repo%% *}"
+        local skill_name="${repo##*/}"
+        cmd="codex skills add ${skill_name}"
+      fi
+      ;;
+    copilot)
+      if [[ "$cmd" == "npx skills add"* ]]; then
+        local repo="${cmd#npx skills add }"
+        repo="${repo%% *}"
+        if command -v copilot &> /dev/null; then
+          cmd="copilot -- plugin install $repo"
+        else
+          cmd="gh copilot -- plugin install $repo"
+        fi
+      fi
+      ;;
+    claude)
+      ;;
+  esac
+
+  echo "$cmd"
+}
+
+usage() {
+  cat <<'EOF'
+Usage: install [options] [<skill-name> | <github-repo>]
+
+Install skills from catalog or directly from GitHub repositories.
+
+Options:
+  --target PATH          Install to specific directory (default: .)
+  --platform PLATFORM    Target platform: opencode, pi, copilot, codex, claude
+  --category CATEGORY    Install by category from catalog
+  --skill NAME           Install specific skill(s), comma-separated
+  --from FILE            Install from favorites file
+  --tag TAG              Filter favorites by tag
+  --direct               Treat argument as GitHub repo (owner/repo)
+  -h, --help             Show this help
+
+Examples:
+  install caveman                    # Install from catalog
+  install --platform pi caveman      # Install for Pi
+  install --direct owner/repo        # Install from GitHub directly
+  install --platform copilot --direct owner/repo  # Direct to Copilot
+  install --category workflow        # Install all workflow skills
+EOF
+}
+
+# Parse arguments
+TARGET="."
+PLATFORM=""
+CATEGORY=""
+SKILL=""
+FROM_FILE=""
+TAG=""
+DIRECT=false
+REPO=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --target) TARGET="$2"; shift 2 ;;
+    --platform) PLATFORM="$2"; shift 2 ;;
+    --category) CATEGORY="$2"; shift 2 ;;
+    --skill) SKILL="$2"; shift 2 ;;
+    --from) FROM_FILE="$2"; shift 2 ;;
+    --tag) TAG="$2"; shift 2 ;;
+    --direct) DIRECT=true; shift ;;
+    -h|--help) usage; exit 0 ;;
+    -*)
+      if [[ "$1" == --* ]]; then
+        echo "Error: unknown flag $1" >&2
+        usage >&2
+        exit 1
+      fi
+      # Positional argument
+      if [[ -z "$REPO" ]]; then
+        REPO="$1"
+      fi
+      shift
+      ;;
+    *)
+      if [[ -z "$REPO" ]]; then
+        REPO="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+mkdir -p "$TARGET"
+TARGET="$(cd "$TARGET" && pwd)"
+
+# Determine what to install
+if [[ "$DIRECT" == true && -n "$REPO" ]]; then
+  # Direct GitHub repo installation
+  [[ ! "$REPO" =~ / ]] && { echo "Error: Direct install requires owner/repo format" >&2; exit 1; }
+  
+  echo "Installing $REPO to $TARGET"
+  
+  # Determine install command based on platform
+  if [[ -n "$PLATFORM" ]]; then
+    cmd="npx skills add $REPO --yes"
+    cmd=$(transform_command_for_platform "$cmd" "$PLATFORM")
+  else
+    cmd="npx skills add $REPO --yes"
+  fi
+  
+  echo "  → $REPO"
+  echo "    $cmd"
+  
+  if (cd "$TARGET" && eval "$cmd" < /dev/null); then
+    echo "  ✓ $REPO installed"
+    echo ""
+    echo "✓ Installation complete"
+    case "$PLATFORM" in
+      opencode) echo "  Skills installed to .opencode/skills/" ;;
+      pi) echo "  Skills installed to .pi/skills/" ;;
+      codex) echo "  Skills installed to .codex/skills/" ;;
+      copilot) echo "  Skills installed via gh copilot -- plugin install" ;;
+      claude) echo "  Skills installed to .claude/skills/" ;;
+      *) echo "  npx skills manages .agents/skills/ automatically" ;;
+    esac
+  else
+    echo "  ✗ Installation failed" >&2
+    exit 1
+  fi
+  exit 0
+fi
+
+# Catalog-based installation
+if [[ ! -f "$CATALOG" ]]; then
+  echo "Error: catalog.tsv not found at $CATALOG" >&2
+  echo "Clone the full repo or use --direct for GitHub repos" >&2
+  exit 1
+fi
+
+# Build filter
+filter_cmd="awk -F'\t' 'NR>1 && \$1!=\"name\"'"
+[[ -n "$CATEGORY" ]] && filter_cmd="$filter_cmd | awk -F'\t' -v c=\"$CATEGORY\" '\$2==c'"
+[[ -n "$PLATFORM" ]] && filter_cmd="$filter_cmd | awk -F'\t' -v p=\"$PLATFORM\" '\$4==\"all\" || \$4~p'"
+[[ -n "$SKILL" ]] && filter_cmd="$filter_cmd | awk -F'\t' -v s=\"$SKILL\" 'BEGIN{split(s,a,\",\"); for(i in a) skills[a[i]]=1} \$1 in skills'"
+[[ -n "$REPO" ]] && filter_cmd="$filter_cmd | awk -F'\t' -v n=\"$REPO\" '\$1==n'"
+
+echo "Installing to $TARGET"
+components=$(eval "$filter_cmd" < "$CATALOG" 2>/dev/null || true)
+
+if [[ -z "$components" ]]; then
+  echo "No components found matching criteria"
+  exit 0
+fi
+
+count=$(echo "$components" | wc -l | tr -d ' ')
+echo "  Components to install: $count"
+echo ""
+
+while IFS=$'\t' read -r name category source platforms agent_target description install_cmd stars remove_cmd docs_url; do
+  [[ -z "$name" ]] && continue
+  [[ -z "$install_cmd" || "$install_cmd" == "-" ]] && continue
+  
+  cmd=$(transform_command_for_platform "$install_cmd" "$PLATFORM")
+  
+  if [[ "$cmd" == UNSUPPORTED:* ]]; then
+    echo "  → $name"
+    echo "  ⚠ ${cmd#UNSUPPORTED: }" >&2
+    continue
+  fi
+  
+  echo "  → $name ($description)"
+  echo "    $cmd"
+  
+  if (cd "$TARGET" && eval "$cmd" < /dev/null 2>&1); then
+    echo "  ✓ $name installed"
+    echo ""
+  else
+    echo "  ⚠ $name installation failed (non-fatal)" >&2
+    echo ""
+  fi
+done < <(echo "$components")
+
+echo "✓ Installation complete"
+case "$PLATFORM" in
+  opencode) echo "  Skills installed to .opencode/skills/" ;;
+  pi) echo "  Skills installed to .pi/skills/" ;;
+  codex) echo "  Skills installed to .codex/skills/" ;;
+  copilot) echo "  Skills installed via gh copilot -- plugin install" ;;
+  claude) echo "  Skills installed to .claude/skills/" ;;
+  *) echo "  npx skills manages .agents/skills/ and platform symlinks automatically" ;;
+esac

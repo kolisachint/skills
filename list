@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+# List user-installed skills across all agent platforms
+
+set -euo pipefail
+
+EXCLUDE_PATTERNS="^\.|runtime|system|corepack|^npm$|^@mariozechner/pi-coding-agent$|^@openai/codex$"
+
+usage() {
+  cat <<'EOF'
+Usage: list [options]
+
+List all user-installed skills (hides system packages).
+
+Options:
+  --format FORMAT    Output format: default|readme (default: default)
+  -h, --help         Show this help
+
+Examples:
+  list                           # Human readable output
+  list --format readme           # Markdown table for README
+EOF
+}
+
+FORMAT="default"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --format) FORMAT="$2"; shift 2 ;;
+    -h|--help) usage; exit 0 ;;
+    *) echo "Error: unknown option $1" >&2; usage >&2; exit 1 ;;
+  esac
+done
+
+# Collect skills
+{
+  # Local
+  for agent_dir in .agents .claude .pi .opencode .codex .github/copilot; do
+    skills_dir="$agent_dir/skills"
+    platform="${agent_dir#.}"
+    [ "$platform" = "agents" ] && platform="all"
+    [ "$platform" = "github/copilot" ] && platform="copilot"
+    if [[ -d "$skills_dir" ]]; then
+      find "$skills_dir" -maxdepth 1 -mindepth 1 -exec basename {} \; 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS" | while read skill; do
+        echo "$skill|$platform|Skill"
+      done
+    fi
+  done
+  
+  # Global
+  for dir in "$HOME/.claude/skills" "$HOME/.claude/commands" "$HOME/.pi/skills" \
+             "$HOME/.opencode/skills" "$HOME/.config/opencode/skills" \
+             "$HOME/.opencode/command" "$HOME/.config/opencode/command" \
+             "$HOME/.codex/skills" "$HOME/.gemini/commands" "$HOME/.github/copilot/skills"; do
+    if [[ -d "$dir" ]]; then
+      platform=$(basename "$(dirname "$dir")")
+      [[ "$platform" == ".config" ]] && platform="OpenCode"
+      [[ "$platform" == ".claude" ]] && platform="Claude"
+      [[ "$platform" == ".pi" ]] && platform="Pi"
+      [[ "$platform" == ".codex" ]] && platform="Codex"
+      [[ "$platform" == ".gemini" ]] && platform="Gemini"
+      [[ "$platform" == ".github" ]] && platform="Copilot"
+      [[ "$platform" == ".opencode" ]] && platform="OpenCode"
+      
+      find "$dir" -maxdepth 1 -mindepth 1 -exec basename {} \; 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS" | while read skill; do
+        type="Skill"
+        [[ "$dir" == *"/command"* ]] && type="Command"
+        echo "$skill|$platform|$type"
+      done
+    fi
+  done
+} | sort -u > /tmp/skills_list.txt 2>/dev/null || true
+
+if [[ "$FORMAT" == "readme" ]]; then
+  echo "## My Installed Skills"
+  echo ""
+  echo "| Skill | Platform | Type |"
+  echo "|-------|----------|------|"
+  
+  if [[ -s /tmp/skills_list.txt ]]; then
+    while IFS='|' read -r skill platform type; do
+      echo "| $skill | $platform | $type |"
+    done < /tmp/skills_list.txt
+  else
+    echo "| (none) | - | - |"
+  fi
+  echo ""
+  echo "*Generated with [Portable AI Skillkit](https://github.com/kolisachint/skills)*"
+else
+  echo "=== LOCAL PROJECT SKILLS ==="
+  echo "Directory: $(pwd)"
+  echo ""
+  
+  local_found=false
+  for agent_dir in .agents .claude .pi .opencode .codex .github/copilot; do
+    skills_dir="$agent_dir/skills"
+    if [[ -d "$skills_dir" ]]; then
+      skills=$(find "$skills_dir" -maxdepth 1 -mindepth 1 \( -type l -o -type d \) -exec basename {} \; 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS" || true)
+      if [[ -n "$skills" ]]; then
+        local_found=true
+        count=$(echo "$skills" | wc -l | tr -d ' ')
+        echo "📁 $skills_dir/ ($count skills)"
+        echo "$skills" | while read s; do echo "   • $s"; done
+        echo ""
+      fi
+    fi
+  done
+  
+  [[ "$local_found" == false ]] && echo "   (no local skills found)" && echo ""
+  
+  echo ""
+  echo "=== GLOBAL USER SKILLS ==="
+  echo ""
+  
+  global_found=false
+  check_dir() {
+    local name="$1"
+    local dir="$2"
+    if [[ -d "$dir" ]]; then
+      items=$(find "$dir" -maxdepth 1 -mindepth 1 -exec basename {} \; 2>/dev/null | grep -v -E "$EXCLUDE_PATTERNS" || true)
+      if [[ -n "$items" ]]; then
+        count=$(echo "$items" | wc -l | tr -d ' ')
+        echo "📁 $name: $dir/ ($count skills)"
+        echo "$items" | head -20 | while read i; do echo "   • $i"; done
+        [[ $count -gt 20 ]] && echo "   ... and $((count - 20)) more"
+        echo ""
+        return 0
+      fi
+    fi
+    return 1
+  }
+  
+  check_dir "Claude" "$HOME/.claude/skills" && global_found=true
+  check_dir "Claude Commands" "$HOME/.claude/commands" && global_found=true
+  check_dir "Pi" "$HOME/.pi/skills" && global_found=true
+  check_dir "OpenCode" "$HOME/.opencode/skills" && global_found=true
+  check_dir "OpenCode" "$HOME/.config/opencode/skills" && global_found=true
+  check_dir "OpenCode Commands" "$HOME/.opencode/command" && global_found=true
+  check_dir "OpenCode Commands" "$HOME/.config/opencode/command" && global_found=true
+  check_dir "Codex" "$HOME/.codex/skills" && global_found=true
+  check_dir "Gemini" "$HOME/.gemini/commands" && global_found=true
+  check_dir "Copilot" "$HOME/.github/copilot/skills" && global_found=true
+  
+  [[ "$global_found" == false ]] && echo "   (no global skills found)" && echo ""
+  
+  echo ""
+  echo "=== NPM GLOBAL PACKAGES ==="
+  echo ""
+  if command -v npm &> /dev/null; then
+    npm_pkgs=$(npm list -g --depth=0 2>/dev/null | grep -E "^├─|^└─" | sed 's/^[├└─│ ]*//' | grep -v -E "^corepack|^npm@|^@mariozechner/pi-coding-agent|^@openai/codex" || true)
+    [[ -n "$npm_pkgs" ]] && echo "$npm_pkgs" || echo "   (no user-installed npm packages)"
+  else
+    echo "   npm not found"
+  fi
+  
+  echo ""
+  echo "=== CLI TOOLS ==="
+  echo ""
+  for cmd in claude codex pi opencode codeburn; do
+    command -v "$cmd" &> /dev/null && echo "✓ $cmd: $(command -v "$cmd")"
+  done
+  
+  echo ""
+  echo "=== SUMMARY ==="
+  echo ""
+  echo "Excluded: npm, corepack, agent CLIs, system files"
+fi
+
+rm -f /tmp/skills_list.txt
