@@ -201,27 +201,19 @@ git clone https://github.com/kolisachint/skills.git && cd skills
 
 ---
 
-### 6. Discover & Search
+### 6. Install from Favorites
 
-**Browse the catalog:**
+Use `favorites.tsv` to install a curated subset:
 
 ```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- list
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- search review
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- top 5
+# Install all favorites
+./install --from favorites.tsv
 
-# Windows
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -command list
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -command search -keyword review
-```
+# Install only daily-driver tagged favorites
+./install --from favorites.tsv --tag daily-driver
 
-**Or locally:**
-```bash
-./install list              # all components
-./install list-categories   # by category
-./install search review     # search
-./install top 5             # top starred
+# Combine with other filters
+./install --from favorites.tsv --tag daily-driver,critical
 ```
 
 ---
@@ -240,7 +232,7 @@ Current catalog: 6 components across 4 categories.
 
 | Name | Platform | Description |
 |------|----------|-------------|
-| **agent-skills** | all | Production engineering from Google's culture *(20K+★)* |
+| **agent-skills** | all | Production engineering from Google's culture *(20K★)* |
 
 ### 🎯 Commands
 
@@ -288,12 +280,11 @@ Every installation can be filtered across five dimensions:
 2. **Platform** — `opencode`, `pi`, `copilot`, `codex`, `claude`
 3. **Agent Target** — `all` or a specific agent/platform name
 4. **Skill** — specific component name(s), comma-separated for multiple
-5. **Scope** — `local` (default) or `all`
 
 Plus two favorites dimensions:
 
-6. **From** — a `favorites.tsv` file (`--from favorites.tsv`)
-7. **Tag** — filter favorites by tag (`--tag daily-driver,critical`)
+5. **From** — a `favorites.tsv` file (`--from favorites.tsv`)
+6. **Tag** — filter favorites by tag (`--tag daily-driver,critical`)
 
 ### Repo-Local by Default
 
@@ -399,6 +390,8 @@ Core beliefs:
 | `verify.ps1` | Verify skill installations (PowerShell) |
 | `catalog.tsv` | Single source of truth for all components |
 | `favorites.tsv` | Personal shortlist for batch install |
+| `Makefile` | Quick-install targets (bootstrap-ai, bootstrap-all, list) |
+| `tests/run.sh` | Test suite — validate scripts, catalog, and consistency |
 | `AGENTS.md` | Project-specific agent instructions |
 | `PHILOSOPHY.md` | Curator's manifesto and design principles |
 | `docs/CATALOG_FORMAT.md` | TSV format and platform transform docs |

@@ -4,6 +4,7 @@
 set -eo pipefail
 
 EXCLUDE_PATTERNS="^\.|runtime|system|corepack|^npm$|^@mariozechner/pi-coding-agent$|^@openai/codex$"
+TMPFILE="${TMPDIR:-/tmp}/skills_list_$$"
 
 usage() {
   cat <<'EOF'
@@ -68,7 +69,7 @@ done
       done
     fi
   done
-} | sort -u > /tmp/skills_list.txt 2>/dev/null || true
+} | sort -u > "$TMPFILE" 2>/dev/null || true
 
 if [[ "$FORMAT" == "readme" ]]; then
   echo "## My Installed Skills"
@@ -76,10 +77,10 @@ if [[ "$FORMAT" == "readme" ]]; then
   echo "| Skill | Platform | Type |"
   echo "|-------|----------|------|"
   
-  if [[ -s /tmp/skills_list.txt ]]; then
+  if [[ -s "$TMPFILE" ]]; then
     while IFS='|' read -r skill platform type; do
       echo "| $skill | $platform | $type |"
-    done < /tmp/skills_list.txt
+    done < "$TMPFILE"
   else
     echo "| (none) | - | - |"
   fi
@@ -165,4 +166,4 @@ else
   echo "Excluded: npm, corepack, agent CLIs, system files"
 fi
 
-rm -f /tmp/skills_list.txt
+rm -f "$TMPFILE"

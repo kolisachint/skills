@@ -25,7 +25,7 @@ Single source of truth for all skills, prompts, commands, tools, agents, and wor
 
 ### Platform-specific install commands
 
-The `install_command` in `catalog.tsv` uses neutral/base commands (typically `npx skills add` or `npm install`). When you pass `--platform <name>` to `install.sh`, the command is automatically transformed for the target platform:
+The `install_command` in `catalog.tsv` uses neutral/base commands (typically `npx skills add` or `npm install`). When you pass `--platform <name>` to `install`, the command is automatically transformed for the target platform:
 
 | Platform | Transform Behavior |
 |----------|-------------------|
@@ -92,6 +92,6 @@ Personal index of frequently-used components.
 ### Usage
 
 ```bash
-./install.sh --target ~/repo --from favorites.tsv --tag daily-driver
-./install.sh --target ~/repo --from favorites.tsv --tag daily-driver,critical
+./install --target ~/repo --from favorites.tsv --tag daily-driver
+./install --target ~/repo --from favorites.tsv --tag daily-driver,critical
 ```

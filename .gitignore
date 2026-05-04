@@ -1,1 +1,17 @@
 node_modules
+.DS_Store
+*.swp
+*.swo
+*~
+.env
+.env.*
+
+# Installed skills (managed by npx skills, not committed)
+.agents/
+.claude/
+.pi/
+.opencode/
+.codex/
+.skills/
+skills/
+skills-lock.json

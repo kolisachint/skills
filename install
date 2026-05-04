@@ -106,6 +106,7 @@ Options:
   --from FILE            Install from favorites file
   --tag TAG              Filter favorites by tag
   --direct               Treat argument as GitHub repo (owner/repo)
+  --global               Install globally (to home directory skills)
   -h, --help             Show this help
 
 Examples:
@@ -114,6 +115,8 @@ Examples:
   install --direct owner/repo        # Install from GitHub directly
   install --platform copilot --direct owner/repo  # Direct to Copilot
   install --category workflow        # Install all workflow skills
+  install --from favorites.tsv       # Install all favorites
+  install --from favorites.tsv --tag daily-driver  # Install tagged favorites
 EOF
 }
 
@@ -126,6 +129,7 @@ FROM_FILE=""
 TAG=""
 DIRECT=false
 REPO=""
+GLOBAL=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -136,6 +140,7 @@ while [[ $# -gt 0 ]]; do
     --from) FROM_FILE="$2"; shift 2 ;;
     --tag) TAG="$2"; shift 2 ;;
     --direct) DIRECT=true; shift ;;
+    --global|-g) GLOBAL=true; shift ;;
     -h|--help) usage; exit 0 ;;
     -*)
       if [[ "$1" == --* ]]; then
@@ -199,7 +204,40 @@ if [[ "$DIRECT" == true && -n "$REPO" ]]; then
 fi
 
 # Catalog-based installation
-if [[ ! -f "$CATALOG" ]]; then
+if [[ -n "$FROM_FILE" ]]; then
+  # Install from favorites file
+  if [[ ! -f "$FROM_FILE" ]]; then
+    echo "Error: favorites file not found: $FROM_FILE" >&2
+    exit 1
+  fi
+
+  FAVORITES_CATALOG="${FROM_FILE%/*}/catalog.tsv"
+  if [[ "$FROM_FILE" == */* ]]; then
+    FAVORITES_CATALOG="${FROM_FILE%/*}/catalog.tsv"
+  else
+    FAVORITES_CATALOG="./catalog.tsv"
+  fi
+
+  if [[ ! -f "$CATALOG" ]]; then
+    echo "Error: catalog.tsv not found at $CATALOG (needed to resolve favorites)" >&2
+    exit 1
+  fi
+
+  # Read favorites and filter by tag if specified
+  if [[ -n "$TAG" ]]; then
+    SKILL_NAMES=$(awk -F'\t' -v tags="$TAG" 'BEGIN{split(tags,t,","); for(i in t) tag[t[i]]=1} NR>1 && $4 in tag {print $1}' "$FROM_FILE" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+  else
+    SKILL_NAMES=$(awk -F'\t' 'NR>1 {print $1}' "$FROM_FILE" 2>/dev/null | tr '\n' ',' | sed 's/,$//')
+  fi
+
+  if [[ -z "$SKILL_NAMES" ]]; then
+    echo "No matching favorites found"
+    exit 0
+  fi
+
+  # Use the SKILL filter with the resolved names
+  SKILL="$SKILL_NAMES"
+elif [[ ! -f "$CATALOG" ]]; then
   echo "Error: catalog.tsv not found at $CATALOG" >&2
   echo "Clone the full repo or use --direct for GitHub repos" >&2
   exit 1

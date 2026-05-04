@@ -76,9 +76,13 @@ remove_npm_global() {
     npm_pkgs=$(npm list -g --depth=0 2>/dev/null | grep -E "^├─|^└─" | sed 's/^[├└─│ ]*//' | grep -i "$pattern" | sed 's/@[^@]*$//' || true)
     
     if [[ -n "$npm_pkgs" ]]; then
-      echo "$npm_pkgs" | while read pkg; do
-        [[ -n "$pkg" ]] && npm uninstall -g "$pkg" 2>/dev/null && echo "    ✓ Removed npm global: $pkg" && removed=true
-      done
+      while IFS= read -r pkg; do
+        [[ -z "$pkg" ]] && continue
+        if npm uninstall -g "$pkg" 2>/dev/null; then
+          echo "    ✓ Removed npm global: $pkg"
+          removed=true
+        fi
+      done < <(echo "$npm_pkgs")
     fi
   fi
   

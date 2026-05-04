@@ -3,6 +3,13 @@
 
 set -eo pipefail
 
+if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo '.')"
+else
+  SCRIPT_DIR="."
+fi
+CATALOG="${SCRIPT_DIR}/catalog.tsv"
+
 usage() {
   cat <<'EOF'
 Usage: verify [options] [<skill-name>]
@@ -138,9 +145,17 @@ fi
 
 # If specific skill provided
 if [[ -n "$SKILL" ]]; then
+  # Determine install command from catalog for custom verification
+  install_cmd=""
+  if [[ -f "$CATALOG" ]]; then
+    install_cmd=$(awk -F'\t' -v n="$SKILL" 'NR>1 && $1==n {print $7; exit}' "$CATALOG" 2>/dev/null || true)
+  fi
+
+  echo "Checking $SKILL..."
+  
+  # Route to custom check based on install command pattern
   case "$SKILL" in
     plannotator)
-      echo "Checking plannotator..."
       check_cli "plannotator" "$VERBOSE"
       cli_status=$?
       
@@ -179,47 +194,116 @@ if [[ -n "$SKILL" ]]; then
       ;;
     
     codeburn)
-      echo "Checking codeburn..."
       check_cli "codeburn" "$VERBOSE"
       ;;
     
-    caveman)
-      echo "Checking caveman..."
-      if [[ -d "$HOME/.claude/skills/caveman" ]] || [[ -d ".claude/skills/caveman" ]]; then
-        echo -e "${GREEN}✓${NC} caveman skill installed"
-      else
-        echo -e "${RED}✗${NC} caveman skill NOT installed"
-      fi
-      ;;
-    
     *)
-      # Generic check
-      echo "Checking $SKILL..."
-      check_cli "$SKILL" "$VERBOSE" || \
-      check_claude_plugin "$SKILL" || \
-      echo -e "${RED}✗${NC} $SKILL not found"
+      # Generic check based on install type
+      if [[ "$install_cmd" == "npm install"* ]]; then
+        # npm global tool — check CLI
+        # npm global tool — check CLI
+        pkg_name=$(echo "$install_cmd" | sed 's/npm install -g //' | sed 's/npm install //')
+        check_cli "$pkg_name" "$VERBOSE"
+      elif [[ "$install_cmd" == "npx skills add"* ]]; then
+        # Agent skill — check local project directory
+        found=false
+        for agent_dir in .agents .claude .pi .opencode; do
+          if [[ -d "${agent_dir}/skills/${SKILL}" ]]; then
+            echo -e "${GREEN}✓${NC} $SKILL installed in ${agent_dir}/skills/"
+            found=true
+          fi
+        done
+        if [[ "$found" == false ]]; then
+          # Check global directories too
+          for gdir in "$HOME/.claude/skills" "$HOME/.pi/skills" "$HOME/.opencode/skills"; do
+            if [[ -d "${gdir}/${SKILL}" ]]; then
+              echo -e "${GREEN}✓${NC} $SKILL installed in ${gdir}/"
+              found=true
+            fi
+          done
+        fi
+        if [[ "$found" == false ]]; then
+          echo -e "${RED}✗${NC} $SKILL NOT installed"
+        fi
+      elif [[ "$install_cmd" == "curl"* ]]; then
+        # Install script — check if CLI is available
+        check_cli "$SKILL" "$VERBOSE"
+      else
+        # Fallback: check CLI and directories
+        check_cli "$SKILL" "$VERBOSE" || \
+        check_claude_plugin "$SKILL" || \
+        echo -e "${RED}✗${NC} $SKILL not found"
+      fi
       ;;
   esac
   exit 0
 fi
 
-# If --all, check all known skills
+# If --all, check all catalog entries + platform infrastructure
 if [[ "$CHECK_ALL" == true ]]; then
   echo "Checking all known skills..."
   echo ""
   
+  # Check catalog-driven skills
+  CATALOG_SKILLS=()
+  CATALOG_CLI_TOOLS=()
+  
+  if [[ -f "$CATALOG" ]]; then
+    while IFS=$'\t' read -r name category source platforms agent_target description install_cmd stars remove_cmd docs_url; do
+      [[ -z "$name" || "$name" == "name" ]] && continue
+      if [[ "$install_cmd" == "npm install"* ]]; then
+        CATALOG_CLI_TOOLS+=("$name")
+      else
+        CATALOG_SKILLS+=("$name")
+      fi
+    done < "$CATALOG"
+  fi
+  
+  echo "Agent Skills:"
+  if [[ ${#CATALOG_SKILLS[@]} -gt 0 ]]; then
+    for skill in "${CATALOG_SKILLS[@]}"; do
+      found=false
+      for agent_dir in .agents .claude .pi .opencode; do
+        if [[ -d "${agent_dir}/skills/${skill}" ]]; then
+          echo -e "${GREEN}✓${NC} $skill installed (${agent_dir}/skills/)"
+          found=true
+          break
+        fi
+      done
+      if [[ "$found" == false ]]; then
+        for gdir in "$HOME/.claude/skills" "$HOME/.pi/skills" "$HOME/.opencode/skills"; do
+          if [[ -d "${gdir}/${skill}" ]]; then
+            echo -e "${GREEN}✓${NC} $skill installed (global: ${gdir}/)"
+            found=true
+            break
+          fi
+        done
+      fi
+      if [[ "$found" == false ]]; then
+        echo -e "${YELLOW}⊘${NC} $skill not installed locally"
+      fi
+    done
+  else
+    echo "  (no catalog skills found)"
+  fi
+  
+  echo ""
   echo "CLI Tools:"
-  check_cli "plannotator" "$VERBOSE"
-  check_cli "codeburn" "$VERBOSE"
-  check_cli "claude" "$VERBOSE"
-  check_cli "codex" "$VERBOSE"
-  check_cli "pi" "$VERBOSE"
+  if [[ ${#CATALOG_CLI_TOOLS[@]} -gt 0 ]]; then
+    for tool in "${CATALOG_CLI_TOOLS[@]}"; do
+      check_cli "$tool" "$VERBOSE"
+    done
+  fi
+  # Also check common agent CLIs
+  for cmd in claude codex pi opencode; do
+    command -v "$cmd" &> /dev/null && echo -e "${GREEN}✓${NC} $cmd CLI installed"
+  done
   
   echo ""
   echo "Agent CLI Tools:"
   if command -v gh &> /dev/null; then
     echo -e "${GREEN}✓${NC} gh CLI installed"
-    if gh copilot --help &>/dev/null; then
+    if gh copilot --help &>/dev/null 2>&1; then
       echo -e "${GREEN}✓${NC} gh copilot extension installed"
     fi
   fi

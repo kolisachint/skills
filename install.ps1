@@ -170,6 +170,34 @@ if (-not (Test-Path $Catalog)) {
     exit 1
 }
 
+# If -From specified, read favorites and resolve to skill names
+if ($From -and (Test-Path $From)) {
+    $favoritesContent = Get-Content $From
+    $favNames = @()
+    foreach ($line in $favoritesContent | Select-Object -Skip 1) {
+        $favFields = $line -split "`t"
+        if ($favFields.Length -ge 4) {
+            if ($Tag) {
+                $tags = $Tag -split ","
+                $lineTags = $favFields[3] -split ","
+                $match = $false
+                foreach ($t in $tags) {
+                    if ($lineTags -contains $t.Trim()) { $match = $true; break }
+                }
+                if ($match) { $favNames += $favFields[0] }
+            } else {
+                $favNames += $favFields[0]
+            }
+        }
+    }
+    if ($favNames.Count -gt 0) {
+        $Skill = $favNames -join ","
+    } else {
+        Write-Host "No matching favorites found"
+        exit 0
+    }
+}
+
 Write-Host "Installing to $Target"
 
 # Read and filter catalog
