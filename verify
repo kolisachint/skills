@@ -1,0 +1,239 @@
+#!/usr/bin/env bash
+# Verify installation of skills and tools
+
+set -eo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: verify [options] [<skill-name>]
+
+Verify if skills/tools are properly installed.
+
+Options:
+  --cli TOOL       Verify specific CLI tool (plannotator, codeburn, etc.)
+  --platform P     Verify platform-specific installation (pi, claude, copilot, etc.)
+  --all            Verify all known skills
+  -v, --verbose    Show detailed output
+  -h, --help       Show this help
+
+Examples:
+  verify plannotator           # Verify plannotator installation
+  verify --cli plannotator     # Verify plannotator CLI
+  verify --platform pi         # Verify Pi extensions
+  verify --all                 # Verify all skills
+EOF
+}
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Check if command exists
+check_cli() {
+  local tool="$1"
+  local verbose="${2:-false}"
+  
+  # Check in ~/.local/bin first (where plannotator installs)
+  if [[ -x "$HOME/.local/bin/$tool" ]]; then
+    if [[ "$verbose" == "true" ]]; then
+      local version
+      version=$("$HOME/.local/bin/$tool" --version 2>/dev/null || echo "unknown")
+      echo -e "${GREEN}✓${NC} $tool installed at $HOME/.local/bin/$tool ($version)"
+    else
+      echo -e "${GREEN}✓${NC} $tool installed"
+    fi
+    return 0
+  fi
+  
+  # Check in PATH
+  if command -v "$tool" &> /dev/null; then
+    if [[ "$verbose" == "true" ]]; then
+      local path
+      path=$(command -v "$tool")
+      local version
+      version=$("$tool" --version 2>/dev/null || echo "unknown")
+      echo -e "${GREEN}✓${NC} $tool installed at $path ($version)"
+    else
+      echo -e "${GREEN}✓${NC} $tool installed"
+    fi
+    return 0
+  fi
+  
+  echo -e "${RED}✗${NC} $tool NOT installed"
+  return 1
+}
+
+# Check Pi extension
+check_pi_extension() {
+  local pkg="$1"
+  if pi list 2>/dev/null | grep -q "$pkg"; then
+    echo -e "${GREEN}✓${NC} Pi extension $pkg installed"
+    return 0
+  else
+    echo -e "${RED}✗${NC} Pi extension $pkg NOT installed"
+    return 1
+  fi
+}
+
+# Check Claude plugin
+check_claude_plugin() {
+  local plugin="$1"
+  if [[ -d "$HOME/.claude/skills/$plugin" ]] || [[ -d "$HOME/.claude/commands/$plugin" ]]; then
+    echo -e "${GREEN}✓${NC} Claude plugin $plugin installed"
+    return 0
+  else
+    echo -e "${RED}✗${NC} Claude plugin $plugin NOT installed"
+    return 1
+  fi
+}
+
+# Check Copilot plugin
+check_copilot_plugin() {
+  local plugin="$1"
+  if command -v copilot &> /dev/null || command -v gh &> /dev/null; then
+    # Try to list plugins (gh copilot plugin list may not exist, so check directory)
+    if [[ -d "$HOME/.github/copilot/skills/$plugin" ]] || [[ -d "$HOME/.local/share/gh/copilot/$plugin" ]]; then
+      echo -e "${GREEN}✓${NC} Copilot plugin $plugin installed"
+      return 0
+    fi
+  fi
+  echo -e "${RED}✗${NC} Copilot plugin $plugin NOT installed"
+  return 1
+}
+
+# Parse arguments
+SKILL=""
+CLI=""
+PLATFORM=""
+CHECK_ALL=false
+VERBOSE=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --cli) CLI="$2"; shift 2 ;;
+    --platform) PLATFORM="$2"; shift 2 ;;
+    --all) CHECK_ALL=true; shift ;;
+    -v|--verbose) VERBOSE=true; shift ;;
+    -h|--help) usage; exit 0 ;;
+    --*) echo "Error: unknown flag $1" >&2; usage >&2; exit 1 ;;
+    *)
+      if [[ -z "$SKILL" ]]; then
+        SKILL="$1"
+      fi
+      shift
+      ;;
+  esac
+done
+
+echo "=== Skill Installation Verification ==="
+echo ""
+
+# If --cli specified, check that CLI
+if [[ -n "$CLI" ]]; then
+  check_cli "$CLI" "$VERBOSE"
+  exit $?
+fi
+
+# If specific skill provided
+if [[ -n "$SKILL" ]]; then
+  case "$SKILL" in
+    plannotator)
+      echo "Checking plannotator..."
+      check_cli "plannotator" "$VERBOSE"
+      cli_status=$?
+      
+      if [[ -n "$PLATFORM" ]]; then
+        echo ""
+        echo "Checking platform-specific installation ($PLATFORM)..."
+        case "$PLATFORM" in
+          pi)
+            check_pi_extension "@plannotator/pi-extension"
+            ;;
+          claude)
+            check_claude_plugin "plannotator"
+            ;;
+          copilot)
+            check_copilot_plugin "plannotator"
+            ;;
+          *)
+            echo -e "${YELLOW}⚠${NC} Unknown platform: $PLATFORM"
+            ;;
+        esac
+      else
+        # Check all platforms
+        echo ""
+        echo "Checking all platform installations..."
+        check_pi_extension "@plannotator/pi-extension" 2>/dev/null || true
+        check_claude_plugin "plannotator" 2>/dev/null || true
+        check_copilot_plugin "plannotator" 2>/dev/null || true
+      fi
+      
+      if [[ $cli_status -eq 0 ]]; then
+        echo ""
+        echo -e "${GREEN}✓ plannotator is ready to use${NC}"
+        echo "  CLI: $HOME/.local/bin/plannotator"
+        echo "  Usage: plannotator --help"
+      fi
+      ;;
+    
+    codeburn)
+      echo "Checking codeburn..."
+      check_cli "codeburn" "$VERBOSE"
+      ;;
+    
+    caveman)
+      echo "Checking caveman..."
+      if [[ -d "$HOME/.claude/skills/caveman" ]] || [[ -d ".claude/skills/caveman" ]]; then
+        echo -e "${GREEN}✓${NC} caveman skill installed"
+      else
+        echo -e "${RED}✗${NC} caveman skill NOT installed"
+      fi
+      ;;
+    
+    *)
+      # Generic check
+      echo "Checking $SKILL..."
+      check_cli "$SKILL" "$VERBOSE" || \
+      check_claude_plugin "$SKILL" || \
+      echo -e "${RED}✗${NC} $SKILL not found"
+      ;;
+  esac
+  exit 0
+fi
+
+# If --all, check all known skills
+if [[ "$CHECK_ALL" == true ]]; then
+  echo "Checking all known skills..."
+  echo ""
+  
+  echo "CLI Tools:"
+  check_cli "plannotator" "$VERBOSE"
+  check_cli "codeburn" "$VERBOSE"
+  check_cli "claude" "$VERBOSE"
+  check_cli "codex" "$VERBOSE"
+  check_cli "pi" "$VERBOSE"
+  
+  echo ""
+  echo "Agent CLI Tools:"
+  if command -v gh &> /dev/null; then
+    echo -e "${GREEN}✓${NC} gh CLI installed"
+    if gh copilot --help &>/dev/null; then
+      echo -e "${GREEN}✓${NC} gh copilot extension installed"
+    fi
+  fi
+  
+  echo ""
+  echo "Platform Directories:"
+  [[ -d "$HOME/.claude/skills" ]] && echo -e "${GREEN}✓${NC} Claude skills directory" || echo -e "${YELLOW}⚠${NC} Claude skills directory missing"
+  [[ -d "$HOME/.pi/skills" ]] && echo -e "${GREEN}✓${NC} Pi skills directory" || echo -e "${YELLOW}⚠${NC} Pi skills directory missing"
+  [[ -d "$HOME/.codex/skills" ]] && echo -e "${GREEN}✓${NC} Codex skills directory" || echo -e "${YELLOW}⚠${NC} Codex skills directory missing"
+  [[ -d "$HOME/.opencode/skills" ]] && echo -e "${GREEN}✓${NC} OpenCode skills directory" || echo -e "${YELLOW}⚠${NC} OpenCode skills directory missing"
+  
+  exit 0
+fi
+
+# No arguments provided
+usage
+exit 1

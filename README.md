@@ -86,7 +86,41 @@ git clone https://github.com/kolisachint/skills.git && cd skills
 
 ---
 
-### 3. Remove Skills
+### 3. Verify Installation
+
+Check if skills are properly installed:
+
+**macOS / Linux:**
+```bash
+# Verify specific skill
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/verify | bash -s -- plannotator
+
+# Verify with platform details
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/verify | bash -s -- plannotator --platform pi
+
+# Verify all known skills
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/verify | bash -s -- --all
+
+# Verify CLI tool with details
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/verify | bash -s -- --cli plannotator --verbose
+```
+
+**Windows:**
+```powershell
+irm https://raw.githubusercontent.com/kolisachint/skills/main/verify.ps1 | iex -skill plannotator
+```
+
+**Or clone locally:**
+```bash
+./verify plannotator              # verify specific skill
+./verify plannotator --platform pi # verify with platform
+./verify --all                    # verify all
+./verify --cli plannotator -v     # verbose output
+```
+
+---
+
+### 4. Remove Skills
 
 Remove from **both** local project AND global directories:
 
@@ -135,7 +169,7 @@ irm https://raw.githubusercontent.com/kolisachint/skills/main/remove | iex -all
 
 ---
 
-### 4. Add Skill to Catalog
+### 5. Add Skill to Catalog
 
 Add a new skill to `catalog.tsv`:
 
@@ -167,7 +201,7 @@ git clone https://github.com/kolisachint/skills.git && cd skills
 
 ---
 
-### 5. Discover & Search
+### 6. Discover & Search
 
 **Browse the catalog:**
 
