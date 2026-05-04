@@ -334,6 +334,92 @@ resolve_favorites_names() {
 }
 
 # ---------------------------------------------------------------------------
+# Platform-specific command transformation
+# ---------------------------------------------------------------------------
+
+# Transform install commands based on target platform
+# Each platform has different conventions for installing skills
+transform_command_for_platform() {
+  local cmd="$1"
+  local platform="${2:-}"
+
+  # No platform specified - return command as-is
+  [[ -z "$platform" ]] && echo "$cmd" && return
+
+  case "$platform" in
+    opencode)
+      # OpenCode requires -a opencode flag for npx skills
+      if [[ "$cmd" == "npx skills add"* ]]; then
+        # Add -a opencode -g -y flags if not present
+        if [[ "$cmd" != *"-a opencode"* ]]; then
+          cmd="${cmd} -a opencode"
+        fi
+        if [[ "$cmd" != *"-g"* ]]; then
+          cmd="${cmd} -g"
+        fi
+        if [[ "$cmd" != *"-y"* && "$cmd" != *"--yes"* ]]; then
+          cmd="${cmd} -y"
+        fi
+      fi
+      ;;
+
+    pi)
+      # Pi uses pi install for npm packages with pi-extension
+      if [[ "$cmd" == "npm install"* ]]; then
+        local pkg="${cmd#npm install }"
+        # Trim leading/trailing whitespace
+        pkg="${pkg#"${pkg%%[![:space:]]*}"}"
+        pkg="${pkg%"${pkg##*[![:space:]]}"}"
+        if [[ "$pkg" == *"pi-extension"* ]]; then
+          cmd="pi install npm:${pkg}"
+        fi
+      fi
+      # Pi can also install from GitHub repos
+      if [[ "$cmd" == "npx skills add"* ]]; then
+        # Extract repo from npx skills add command
+        local repo="${cmd#npx skills add }"
+        repo="${repo%% *}"  # Get first argument
+        if [[ "$repo" == */* && "$repo" != *" --"* && "$repo" != *" -"* ]]; then
+          # Looks like owner/repo format - convert to pi install
+          cmd="pi install https://github.com/${repo}"
+        fi
+      fi
+      ;;
+
+    codex)
+      # Codex uses: codex skills add <skill-name>
+      # or creates skills in .codex/skills/ directory
+      if [[ "$cmd" == "npx skills add"* ]]; then
+        local repo="${cmd#npx skills add }"
+        repo="${repo%% *}"
+        # Extract skill name from repo (last part after /)
+        local skill_name="${repo##*/}"
+        cmd="codex skills add ${skill_name}"
+      fi
+      ;;
+
+    copilot)
+      # Copilot skills are VS Code extensions or agent configurations
+      # Copilot doesn't have a CLI skill installer like npx skills
+      # Skills are typically installed via VS Code marketplace or configured
+      # in .github/copilot/skills/ directory
+      if [[ "$cmd" == "npx skills add"* ]]; then
+        # Copilot doesn't support npx skills - warn user
+        echo "UNSUPPORTED:Copilot doesn't support npx skills installation. See docs/REFERENCES.md for Copilot skill setup."
+        return
+      fi
+      ;;
+
+    claude)
+      # Claude Code uses npx skills with default behavior
+      # No transformation needed - works as-is
+      ;;
+  esac
+
+  echo "$cmd"
+}
+
+# ---------------------------------------------------------------------------
 # Install — thin wrapper around npx skills / npm install
 # ---------------------------------------------------------------------------
 
@@ -443,17 +529,18 @@ cmd_install() {
       continue
     fi
 
-    local cmd="$install_cmd"
-    if [[ "$platform_filter" == "pi" ]]; then
-      if [[ "$cmd" == "npm install "* ]]; then
-        local pkg="${cmd#npm install }"
-        pkg="${pkg#"${pkg%%[![:space:]]*}"}"
-        pkg="${pkg%"${pkg##*[![:space:]]}"}"
-        if [[ "$pkg" == *"pi-extension"* ]]; then
-          cmd="pi install npm:${pkg}"
-        fi
-      fi
+    # Transform command based on platform
+    local cmd=$(transform_command_for_platform "$install_cmd" "$platform_filter")
+
+    # Handle unsupported platforms
+    if [[ "$cmd" == UNSUPPORTED:* ]]; then
+      printf '  → %s (%s)\n' "$name" "$description"
+      printf '  ⚠ %s\n\n' "${cmd#UNSUPPORTED: }" >&2
+      continue
     fi
+
+    # Skip empty commands
+    [[ -z "$cmd" ]] && continue
 
     printf '  → %s (%s)\n' "$name" "$description"
     printf '    %s\n' "$cmd"
@@ -466,7 +553,20 @@ cmd_install() {
   done < <(printf '%s\n' "$components")
 
   printf '✓ Installation complete\n'
-  printf '  npx skills manages .agents/skills/ and platform symlinks automatically.\n'
+  case "$platform_filter" in
+    opencode)
+      printf '  Skills installed to .opencode/skills/\n' ;;
+    pi)
+      printf '  Skills installed to .pi/skills/\n' ;;
+    codex)
+      printf '  Skills installed to .codex/skills/\n' ;;
+    copilot)
+      printf '  See docs/REFERENCES.md for Copilot skill configuration\n' ;;
+    claude)
+      printf '  Skills installed to .claude/skills/\n' ;;
+    *)
+      printf '  npx skills manages .agents/skills/ and platform symlinks automatically.\n' ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------

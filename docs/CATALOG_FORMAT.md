@@ -23,7 +23,35 @@ Single source of truth for all skills, prompts, commands, tools, agents, and wor
 
 ### Platform-specific install commands
 
-When `--platform pi` is passed to `install.sh`/`install.ps1`, npm install commands for packages containing `pi-extension` in their name are automatically transformed to `pi install npm:<pkg>` so Pi can discover and load the extension.
+The `install_command` in `catalog.tsv` uses neutral/base commands (typically `npx skills add` or `npm install`). When you pass `--platform <name>` to `install.sh`, the command is automatically transformed for the target platform:
+
+| Platform | Transform Behavior |
+|----------|-------------------|
+| `opencode` | Adds `-a opencode -g -y` flags to `npx skills add` commands |
+| `pi` | Converts `npm install <pkg>` with `pi-extension` to `pi install npm:<pkg>`; Converts `npx skills add owner/repo` to `pi install https://github.com/owner/repo` |
+| `codex` | Converts `npx skills add owner/repo` to `codex skills add <skill-name>` |
+| `copilot` | Returns UNSUPPORTED — Copilot uses VS Code extensions, not CLI skill installation |
+| `claude` | No transform needed — uses `npx skills` as-is |
+
+This means you can use the same catalog for all platforms. The installer adapts commands automatically.
+
+**Example:**
+```bash
+# Base command in catalog:
+npx skills add obra/superpowers --yes
+
+# With --platform opencode:
+npx skills add obra/superpowers --yes -a opencode -g -y
+
+# With --platform pi:
+pi install https://github.com/obra/superpowers
+
+# With --platform codex:
+codex skills add superpowers
+
+# With --platform copilot:
+⚠ UNSUPPORTED: See docs/REFERENCES.md for Copilot skill setup
+```
 
 ---
 

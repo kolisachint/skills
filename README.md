@@ -167,6 +167,31 @@ Global-only tools are excluded.
 Use `--platform` to filter the catalog by platform compatibility. The actual
 platform directories (`.pi/`, `.claude/`, etc.) are managed by `npx skills`.
 
+### Platform Compatibility
+
+Commands are automatically transformed for your target platform:
+
+| Platform | Command Transform | Status |
+|----------|------------------|--------|
+| **OpenCode** | `npx skills add repo` → `npx skills add repo -a opencode -g -y` | ✅ Fully supported |
+| **Pi** | `npx skills add repo` → `pi install https://github.com/repo` | ✅ Fully supported |
+| **Claude** | `npx skills add repo` → `npx skills add repo --yes` | ✅ Fully supported |
+| **Codex** | `npx skills add repo` → `codex skills add <skill-name>` | ✅ Supported (transformed) |
+| **Copilot** | Not supported via CLI | ⚠️ See [docs/REFERENCES.md](docs/REFERENCES.md) |
+
+**Example:**
+```bash
+# Install superpowers workflow for OpenCode
+./install.sh --target ~/repo --platform opencode --skill superpowers
+
+# Install for Pi (transforms to pi install)
+./install.sh --target ~/repo --platform pi --skill superpowers
+
+# Copilot requires manual setup
+./install.sh --target ~/repo --platform copilot --skill superpowers
+# → ⚠️ UNSUPPORTED: Copilot doesn't support npx skills installation.
+```
+
 ---
 
 ## What Gets Installed

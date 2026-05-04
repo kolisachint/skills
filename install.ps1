@@ -344,6 +344,76 @@ function Read-Favorites {
 }
 
 # ---------------------------------------------------------------------------
+# Platform-specific command transformation
+# ---------------------------------------------------------------------------
+
+function Transform-CommandForPlatform {
+  param(
+    [string]$Command,
+    [string]$Platform = ""
+  )
+
+  # No platform specified - return command as-is
+  if (-not $Platform) { return $Command }
+
+  switch ($Platform) {
+    "opencode" {
+      # OpenCode requires -a opencode flag for npx skills
+      if ($Command -match '^npx\s+skills\s+add') {
+        if ($Command -notmatch '-a\s+opencode') {
+          $Command += " -a opencode"
+        }
+        if ($Command -notmatch '-g') {
+          $Command += " -g"
+        }
+        if ($Command -notmatch '-y' -and $Command -notmatch '--yes') {
+          $Command += " -y"
+        }
+      }
+    }
+
+    "pi" {
+      # Pi uses pi install for npm packages with pi-extension
+      if ($Command -match '^npm\s+install\s+(.+)$') {
+        $pkg = $matches[1].Trim()
+        if ($pkg -match 'pi-extension') {
+          return "pi install npm:$pkg"
+        }
+      }
+      # Pi can also install from GitHub repos
+      if ($Command -match '^npx\s+skills\s+add\s+([^\s]+)') {
+        $repo = $matches[1].Trim()
+        if ($repo -match '/') {
+          return "pi install https://github.com/$repo"
+        }
+      }
+    }
+
+    "codex" {
+      # Codex uses: codex skills add <skill-name>
+      if ($Command -match '^npx\s+skills\s+add\s+([^\s]+)') {
+        $repo = $matches[1].Trim()
+        $skillName = $repo -replace '.*/', ''
+        return "codex skills add $skillName"
+      }
+    }
+
+    "copilot" {
+      # Copilot doesn't support CLI skill installation
+      if ($Command -match '^npx\s+skills\s+add') {
+        return "UNSUPPORTED:Copilot doesn't support npx skills installation. See docs/REFERENCES.md for Copilot skill setup."
+      }
+    }
+
+    "claude" {
+      # Claude Code uses npx skills with default behavior - no transform needed
+    }
+  }
+
+  return $Command
+}
+
+# ---------------------------------------------------------------------------
 # Install — thin wrapper around npx skills / npm install
 # ---------------------------------------------------------------------------
 
@@ -417,13 +487,19 @@ function Cmd-Install {
       continue
     }
 
-    $cmd = $comp.InstallCommand
-    if ($PlatformFilter -eq "pi" -and $cmd -match '^npm\s+install\s+(.+)$') {
-      $pkg = $matches[1].Trim()
-      if ($pkg -match 'pi-extension') {
-        $cmd = "pi install npm:$pkg"
-      }
+    # Transform command based on platform
+    $cmd = Transform-CommandForPlatform -Command $comp.InstallCommand -Platform $PlatformFilter
+
+    # Handle unsupported platforms
+    if ($cmd -match '^UNSUPPORTED:') {
+      Write-Host "  → $($comp.Name) ($($comp.Description))"
+      Write-Warning "  ⚠ $($cmd.Substring(12))"
+      Write-Host ""
+      continue
     }
+
+    # Skip empty commands
+    if (-not $cmd) { continue }
 
     Write-Host "  → $($comp.Name) ($($comp.Description))"
     Write-Host "    $cmd"
@@ -444,7 +520,14 @@ function Cmd-Install {
   }
 
   Write-Host "✓ Installation complete"
-  Write-Host "  npx skills manages .agents/skills/ and platform symlinks automatically."
+  switch ($PlatformFilter) {
+    "opencode" { Write-Host "  Skills installed to .opencode/skills/" }
+    "pi"       { Write-Host "  Skills installed to .pi/skills/" }
+    "codex"    { Write-Host "  Skills installed to .codex/skills/" }
+    "copilot"  { Write-Host "  See docs/REFERENCES.md for Copilot skill configuration" }
+    "claude"   { Write-Host "  Skills installed to .claude/skills/" }
+    default    { Write-Host "  npx skills manages .agents/skills/ and platform symlinks automatically." }
+  }
 }
 
 # ---------------------------------------------------------------------------
