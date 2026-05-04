@@ -99,9 +99,10 @@ make bootstrap-ai TARGET=~/repo
 
 ```bash
 # macOS / Linux
-./install.sh installed                  # list what's installed
-./install.sh remove caveman             # remove a skill
+./install.sh installed                  # list what's installed (local project)
+./install.sh remove caveman             # remove from local + global
 ./install.sh remove caveman grill-me    # remove multiple
+./install.sh remove --all               # remove ALL skills (local + global)
 ./install.sh update                     # update all skills
 ./install.sh update caveman             # update one skill
 
@@ -109,8 +110,45 @@ make bootstrap-ai TARGET=~/repo
 .\install.ps1 installed
 .\install.ps1 remove caveman
 .\install.ps1 remove caveman, grill-me
+.\install.ps1 remove --all
 .\install.ps1 update
 .\install.ps1 update caveman
+```
+
+### Remove Command (Local + Global)
+
+The remove command now cleans up skills from **both** your local project AND global user directories:
+
+```bash
+# Remove from everywhere
+./install.sh remove caveman
+
+# Output shows all locations:
+# → caveman
+#   Local: npx skills remove caveman --yes
+#     ✓ Removed from local project
+#   Global directories...
+#     ✓ Removed from ~/.claude/skills: caveman
+#     ✓ Removed from ~/.claude/skills: caveman-help
+#     ✓ Removed from ~/.claude/skills: caveman-stats
+#   NPM global packages...
+#     ℹ No matching npm global packages
+#
+# ✓ Removal complete
+```
+
+**Global directories checked:**
+- `~/.claude/skills/` and `~/.claude/commands/`
+- `~/.pi/skills/`
+- `~/.opencode/skills/` and `~/.opencode/command/`
+- `~/.config/opencode/skills/` and `~/.config/opencode/command/`
+- `~/.codex/skills/`
+- `~/.gemini/commands/`
+- `~/.github/copilot/skills/`
+
+**Remove all skills everywhere:**
+```bash
+./install.sh remove --all
 ```
 
 ## Curated Components
