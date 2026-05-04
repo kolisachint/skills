@@ -570,18 +570,79 @@ cmd_install() {
 }
 
 # ---------------------------------------------------------------------------
-# Remove command
+# Remove command - local and global
 # ---------------------------------------------------------------------------
+
+# Global skill directories to check/remove from
+declare -a GLOBAL_SKILL_DIRS=(
+  "$HOME/.claude/skills"
+  "$HOME/.claude/commands"
+  "$HOME/.pi/skills"
+  "$HOME/.opencode/skills"
+  "$HOME/.opencode/command"
+  "$HOME/.config/opencode/skills"
+  "$HOME/.config/opencode/command"
+  "$HOME/.codex/skills"
+  "$HOME/.gemini/commands"
+  "$HOME/.github/copilot/skills"
+)
+
+# Remove skill from global directories
+remove_global_skill() {
+  local skill_name="$1"
+  local removed=1  # 1 = false, 0 = true
+
+  for dir in "${GLOBAL_SKILL_DIRS[@]}"; do
+    if [[ -d "$dir" ]]; then
+      # Find matching items and process without subshell
+      while IFS= read -r -d '' item; do
+        local basename_item
+        basename_item=$(basename "$item")
+        if [[ "$basename_item" =~ ^${skill_name}$ ]] || [[ "$basename_item" =~ ^${skill_name}- ]]; then
+          rm -rf "$item"
+          printf '    ✓ Removed from %s: %s\n' "$dir" "$basename_item"
+          removed=0
+        fi
+      done < <(find "$dir" -maxdepth 1 -mindepth 1 -print0 2>/dev/null)
+    fi
+  done
+
+  return $removed
+}
+
+# Remove npm global package
+remove_npm_global() {
+  local pkg_pattern="$1"
+  
+  # Check if it's an npm package (starts with @ or looks like a package name)
+  if [[ "$pkg_pattern" == @* ]] || [[ "$pkg_pattern" == *"-"* ]] || [[ "$pkg_pattern" == *"_"* ]]; then
+    # Try to find matching npm global packages
+    local npm_pkgs
+    npm_pkgs=$(npm list -g --depth=0 2>/dev/null | grep -E "^├─|^└─|^├──|^└──" | sed 's/^[├└─│ ]*//' | grep -i "$pkg_pattern" | sed 's/@[^@]*$//' || true)
+    
+    if [[ -n "$npm_pkgs" ]]; then
+      echo "$npm_pkgs" | while read pkg; do
+        if [[ -n "$pkg" ]]; then
+          npm uninstall -g "$pkg" 2>/dev/null && printf '    ✓ Removed npm global: %s\n' "$pkg" || true
+        fi
+      done
+      return 0
+    fi
+  fi
+  return 1
+}
 
 cmd_remove() {
   local target=""
   local skill_filter=""
   local remove_all=""
+  local platform_filter=""
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --target) target="$2"; shift 2 ;;
       --skill) skill_filter="$2"; shift 2 ;;
+      --platform) platform_filter="$2"; shift 2 ;;
       --all) remove_all=1; shift ;;
       -*)
         printf 'Error: unknown flag %s\n' "$1" >&2
@@ -611,10 +672,19 @@ cmd_remove() {
   if [[ -n "$remove_all" ]]; then
     printf 'Removing ALL skills from %s\n' "$target"
     if (cd "$target" && npx skills remove --all --yes < /dev/null); then
-      printf '✓ All skills removed\n'
+      printf '✓ All local skills removed\n'
     else
-      printf '  ⚠ bulk removal failed (non-fatal)\n' >&2
+      printf '  ⚠ bulk local removal failed (non-fatal)\n' >&2
     fi
+    
+    # Also remove from global directories
+    printf 'Removing global skills...\n'
+    for dir in "${GLOBAL_SKILL_DIRS[@]}"; do
+      if [[ -d "$dir" ]]; then
+        rm -rf "$dir"/*
+        printf '  ✓ Cleared %s\n' "$dir"
+      fi
+    done
     return
   fi
 
@@ -630,7 +700,9 @@ cmd_remove() {
   for name in $skill_filter; do
     [[ -z "$name" ]] && continue
 
-    # Look up in catalog first
+    printf '\n→ %s\n' "$name"
+    
+    # 1. Remove from local target directory
     local remove_cmd=""
     remove_cmd=$(awk -F'\t' -v n="$name" '$1==n && NF>=9 && $9!="" && $9!="-" {print $9; exit}' "$CATALOG")
 
@@ -663,17 +735,32 @@ cmd_remove() {
       remove_cmd="npx skills remove $name --yes"
     fi
 
-    printf '  → %s\n' "$name"
-    printf '    %s\n' "$remove_cmd"
-
-    if (cd "$target" && eval "$remove_cmd" < /dev/null); then
-      printf '  ✓ %s removed\n\n' "$name"
+    # Execute local removal
+    printf '  Local: %s\n' "$remove_cmd"
+    if (cd "$target" && eval "$remove_cmd" < /dev/null 2>&1); then
+      printf '    ✓ Removed from local project\n'
     else
-      printf '  ⚠ %s removal failed (non-fatal)\n\n' "$name" >&2
+      printf '    ℹ Not found in local project (or already removed)\n'
+    fi
+
+    # 2. Remove from global directories
+    printf '  Global directories...\n'
+    if remove_global_skill "$name"; then
+      : # Items were removed (output already printed)
+    else
+      printf '    ℹ Not found in global directories\n'
+    fi
+
+    # 3. Also try npm global removal for matching packages
+    printf '  NPM global packages...\n'
+    if remove_npm_global "$name"; then
+      : # Packages were removed (output already printed)
+    else
+      printf '    ℹ No matching npm global packages\n'
     fi
   done
 
-  printf '✓ Removal complete\n'
+  printf '\n✓ Removal complete\n'
 }
 
 # ---------------------------------------------------------------------------
