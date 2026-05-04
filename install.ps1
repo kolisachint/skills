@@ -61,6 +61,10 @@ function Transform-CommandForPlatform {
                 if ($Command -notmatch '-g') { $Command += " -g" }
                 if ($Command -notmatch '-y' -and $Command -notmatch '--yes') { $Command += " -y" }
             }
+            # Special case: plannotator on OpenCode needs config + install script
+            if ($Command -match 'plannotator\.ai/install\.sh') {
+                return "# Add to opencode.json: { `"plugin`": [`"@plannotator/opencode@latest`"] }; then run: curl -fsSL https://plannotator.ai/install.sh | bash"
+            }
         }
         "pi" {
             if ($Command -match '^npm\s+install\s+(.+)$') {
@@ -69,12 +73,11 @@ function Transform-CommandForPlatform {
             }
             if ($Command -match '^npx\s+skills\s+add\s+([^\s]+)') {
                 $repo = $matches[1].Trim()
-                # Special case: plannotator uses pi-extension package
-                if ($repo -eq 'backnotprop/plannotator') {
-                    return "pi install npm:@plannotator/pi-extension"
-                } elseif ($repo -match '/') {
-                    return "pi install https://github.com/$repo"
-                }
+                if ($repo -match '/') { return "pi install https://github.com/$repo" }
+            }
+            # Special case: plannotator on Pi uses pi-extension package
+            if ($Command -match 'plannotator\.ai/install\.sh') {
+                return "pi install npm:@plannotator/pi-extension"
             }
         }
         "codex" {
@@ -82,6 +85,10 @@ function Transform-CommandForPlatform {
                 $repo = $matches[1].Trim()
                 $skillName = $repo -replace '.*/', ''
                 return "codex skills add $skillName"
+            }
+            # Special case: plannotator on Codex uses install script
+            if ($Command -match 'plannotator\.ai/install\.sh') {
+                return "curl -fsSL https://plannotator.ai/install.sh | bash # Restart Codex Desktop after install"
             }
         }
         "copilot" {
@@ -92,6 +99,16 @@ function Transform-CommandForPlatform {
                 } else {
                     return "gh copilot -- plugin install $repo"
                 }
+            }
+            # Special case: plannotator on Copilot uses install script + marketplace
+            if ($Command -match 'plannotator\.ai/install\.sh') {
+                return "curl -fsSL https://plannotator.ai/install.sh | bash && copilot -- plugin marketplace add backnotprop/plannotator && copilot -- plugin install plannotator-copilot@plannotator"
+            }
+        }
+        "claude" {
+            # Special case: plannotator on Claude uses install script + marketplace
+            if ($Command -match 'plannotator\.ai/install\.sh') {
+                return "curl -fsSL https://plannotator.ai/install.sh | bash # Then in Claude: /plugin marketplace add backnotprop/plannotator"
             }
         }
     }

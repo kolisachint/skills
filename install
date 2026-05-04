@@ -32,6 +32,10 @@ transform_command_for_platform() {
         [[ "$cmd" != *"-g"* ]] && cmd="${cmd} -g"
         [[ "$cmd" != *"-y"* && "$cmd" != *"--yes"* ]] && cmd="${cmd} -y"
       fi
+      # Special case: plannotator on OpenCode needs config + install script
+      if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
+        cmd="# Add to opencode.json: { ""plugin"": [""@plannotator/opencode@latest""] }; then run: curl -fsSL https://plannotator.ai/install.sh | bash"
+      fi
       ;;
     pi)
       if [[ "$cmd" == "npm install"* ]]; then
@@ -43,12 +47,11 @@ transform_command_for_platform() {
       if [[ "$cmd" == "npx skills add"* ]]; then
         local repo="${cmd#npx skills add }"
         repo="${repo%% *}"
-        # Special case: plannotator uses pi-extension package
-        if [[ "$repo" == "backnotprop/plannotator" ]]; then
-          cmd="pi install npm:@plannotator/pi-extension"
-        elif [[ "$repo" == */* ]]; then
-          cmd="pi install https://github.com/${repo}"
-        fi
+        [[ "$repo" == */* ]] && cmd="pi install https://github.com/${repo}"
+      fi
+      # Special case: plannotator on Pi uses pi-extension package
+      if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
+        cmd="pi install npm:@plannotator/pi-extension"
       fi
       ;;
     codex)
@@ -57,6 +60,10 @@ transform_command_for_platform() {
         repo="${repo%% *}"
         local skill_name="${repo##*/}"
         cmd="codex skills add ${skill_name}"
+      fi
+      # Special case: plannotator on Codex uses install script
+      if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
+        cmd="curl -fsSL https://plannotator.ai/install.sh | bash # Restart Codex Desktop after install"
       fi
       ;;
     copilot)
@@ -69,8 +76,16 @@ transform_command_for_platform() {
           cmd="gh copilot -- plugin install $repo"
         fi
       fi
+      # Special case: plannotator on Copilot uses install script + marketplace
+      if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
+        cmd="curl -fsSL https://plannotator.ai/install.sh | bash && copilot -- plugin marketplace add backnotprop/plannotator && copilot -- plugin install plannotator-copilot@plannotator"
+      fi
       ;;
     claude)
+      # Special case: plannotator on Claude uses install script + marketplace
+      if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
+        cmd="curl -fsSL https://plannotator.ai/install.sh | bash # Then in Claude: /plugin marketplace add backnotprop/plannotator"
+      fi
       ;;
   esac
 

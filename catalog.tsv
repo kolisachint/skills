@@ -3,5 +3,5 @@ superpowers	workflow	external	all	all	Complete TDD and development methodology f
 agent-skills	skill	external	all	all	Production-grade engineering skills from Google's culture	npx skills add addyosmani/agent-skills --yes	20K+	npx skills remove agent-skills --yes	https://github.com/addyosmani/agent-skills
 caveman	command	external	all	all	Ultra-compressed communication mode - 75% token reduction	npx skills add JuliusBrussee/caveman --yes	52K	npx skills remove caveman --yes	https://github.com/JuliusBrussee/caveman
 grill-me	command	external	all	all	One-question-at-a-time requirement interrogation	npx skills add mattpocock/skills --skill grill-me --yes	31K	npx skills remove grill-me --yes	https://github.com/mattpocock/skills
-plannotator	command	external	all	all	Visual plan and diff review with annotations	npx skills add backnotprop/plannotator --yes	5K	npx skills remove plannotator --yes	https://github.com/backnotprop/plannotator
+plannotator	command	external	all	all	Visual plan and diff review with annotations	curl -fsSL https://plannotator.ai/install.sh | bash	5K	npx skills remove plannotator --yes	https://github.com/backnotprop/plannotator
 codeburn	tool	external	all	all	Interactive TUI dashboard for token/cost observability	npm install -g codeburn	4.6K	npm uninstall -g codeburn	https://www.npmjs.com/package/codeburn
