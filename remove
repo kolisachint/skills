@@ -177,6 +177,8 @@ for skill in "${SKILLS[@]}"; do
     else
       remove_cmd="gh copilot -- plugin uninstall $skill"
     fi
+  elif [[ "$PLATFORM" == "pi" && "$skill" == "plannotator" ]]; then
+    remove_cmd="pi remove npm:@plannotator/pi-extension"
   fi
   
   # Fallback

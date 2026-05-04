@@ -43,7 +43,12 @@ transform_command_for_platform() {
       if [[ "$cmd" == "npx skills add"* ]]; then
         local repo="${cmd#npx skills add }"
         repo="${repo%% *}"
-        [[ "$repo" == */* ]] && cmd="pi install https://github.com/${repo}"
+        # Special case: plannotator uses pi-extension package
+        if [[ "$repo" == "backnotprop/plannotator" ]]; then
+          cmd="pi install npm:@plannotator/pi-extension"
+        elif [[ "$repo" == */* ]]; then
+          cmd="pi install https://github.com/${repo}"
+        fi
       fi
       ;;
     codex)

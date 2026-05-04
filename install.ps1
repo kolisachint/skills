@@ -69,7 +69,12 @@ function Transform-CommandForPlatform {
             }
             if ($Command -match '^npx\s+skills\s+add\s+([^\s]+)') {
                 $repo = $matches[1].Trim()
-                if ($repo -match '/') { return "pi install https://github.com/$repo" }
+                # Special case: plannotator uses pi-extension package
+                if ($repo -eq 'backnotprop/plannotator') {
+                    return "pi install npm:@plannotator/pi-extension"
+                } elseif ($repo -match '/') {
+                    return "pi install https://github.com/$repo"
+                }
             }
         }
         "codex" {

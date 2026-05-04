@@ -171,6 +171,8 @@ foreach ($skill in $Skills) {
         } else {
             $removeCmd = "gh copilot -- plugin uninstall $skill"
         }
+    } elseif ($Platform -eq "pi" -and $skill -eq "plannotator") {
+        $removeCmd = "pi remove npm:@plannotator/pi-extension"
     }
     
     # Fallback
