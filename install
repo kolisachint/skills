@@ -32,9 +32,9 @@ transform_command_for_platform() {
         [[ "$cmd" != *"-g"* ]] && cmd="${cmd} -g"
         [[ "$cmd" != *"-y"* && "$cmd" != *"--yes"* ]] && cmd="${cmd} -y"
       fi
-      # Special case: plannotator on OpenCode needs config + install script
+      # Special case: plannotator on OpenCode - config + install CLI
       if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
-        cmd="# Add to opencode.json: { ""plugin"": [""@plannotator/opencode@latest""] }; then run: curl -fsSL https://plannotator.ai/install.sh | bash"
+        cmd="# Add to opencode.json: { ""plugin"": [""@plannotator/opencode@latest""] }; then: (curl -fsSL https://plannotator.ai/install.sh | bash) && $HOME/.local/bin/plannotator --version"
       fi
       ;;
     pi)
@@ -49,9 +49,9 @@ transform_command_for_platform() {
         repo="${repo%% *}"
         [[ "$repo" == */* ]] && cmd="pi install https://github.com/${repo}"
       fi
-      # Special case: plannotator on Pi uses pi-extension package
+      # Special case: plannotator on Pi - install CLI to ~/.local/bin then pi-extension
       if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
-        cmd="pi install npm:@plannotator/pi-extension"
+        cmd="(curl -fsSL https://plannotator.ai/install.sh | bash) && $HOME/.local/bin/plannotator --version && pi install npm:@plannotator/pi-extension"
       fi
       ;;
     codex)
@@ -61,9 +61,9 @@ transform_command_for_platform() {
         local skill_name="${repo##*/}"
         cmd="codex skills add ${skill_name}"
       fi
-      # Special case: plannotator on Codex uses install script
+      # Special case: plannotator on Codex - install CLI then restart
       if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
-        cmd="curl -fsSL https://plannotator.ai/install.sh | bash # Restart Codex Desktop after install"
+        cmd="(curl -fsSL https://plannotator.ai/install.sh | bash) && $HOME/.local/bin/plannotator --version # Then restart Codex Desktop"
       fi
       ;;
     copilot)
@@ -76,15 +76,15 @@ transform_command_for_platform() {
           cmd="gh copilot -- plugin install $repo"
         fi
       fi
-      # Special case: plannotator on Copilot uses install script + marketplace
+      # Special case: plannotator on Copilot - install CLI then plugin
       if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
-        cmd="curl -fsSL https://plannotator.ai/install.sh | bash && copilot -- plugin marketplace add backnotprop/plannotator && copilot -- plugin install plannotator-copilot@plannotator"
+        cmd="(curl -fsSL https://plannotator.ai/install.sh | bash) && $HOME/.local/bin/plannotator --version && copilot -- plugin marketplace add backnotprop/plannotator && copilot -- plugin install plannotator-copilot@plannotator"
       fi
       ;;
     claude)
-      # Special case: plannotator on Claude uses install script + marketplace
+      # Special case: plannotator on Claude - install CLI then plugin
       if [[ "$cmd" == *"plannotator.ai/install.sh"* ]]; then
-        cmd="curl -fsSL https://plannotator.ai/install.sh | bash # Then in Claude: /plugin marketplace add backnotprop/plannotator"
+        cmd="(curl -fsSL https://plannotator.ai/install.sh | bash) && $HOME/.local/bin/plannotator --version # Then in Claude: /plugin marketplace add backnotprop/plannotator"
       fi
       ;;
   esac
