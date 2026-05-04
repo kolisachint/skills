@@ -49,15 +49,13 @@ Comprehensive links for skill installation, configuration, and authoring across 
 
 - **Agent Skills**: [https://docs.github.com/en/copilot/concepts/agents/about-agent-skills](https://docs.github.com/en/copilot/concepts/agents/about-agent-skills) 
 - **Custom Agents**: [https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-custom-agents](https://docs.github.com/en/copilot/concepts/agents/cloud-agent/about-custom-agents)
+- **CLI Plugins**: [https://docs.github.com/copilot/concepts/agents/copilot-cli/about-cli-plugins](https://docs.github.com/copilot/concepts/agents/copilot-cli/about-cli-plugins)
 
-> **Important**: Copilot does **not** support CLI-based skill installation. Skills are installed via:
-> - VS Code marketplace (for Copilot extensions)
-> - GitHub Copilot Chat interface
-> - Manual configuration in `.github/copilot/skills/`
+> **Install syntax**: `gh copilot -- plugin install owner/repo`
 > 
-> The install.sh will report UNSUPPORTED for Copilot platform with instructions to use the documentation links above.
+> **Note**: Copilot CLI requires the `gh` CLI with Copilot extension. The install.sh transforms `npx skills add` to `gh copilot -- plugin install` automatically when `--platform copilot` is specified.
 > 
-> **Skill directory**: `.github/copilot/skills/` (manual setup)
+> **Skill directory**: `.github/copilot/skills/` (CLI plugins) or VS Code extensions
 
 ## Claude (Claude Code)
 

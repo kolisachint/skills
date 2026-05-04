@@ -399,14 +399,12 @@ transform_command_for_platform() {
       ;;
 
     copilot)
-      # Copilot skills are VS Code extensions or agent configurations
-      # Copilot doesn't have a CLI skill installer like npx skills
-      # Skills are typically installed via VS Code marketplace or configured
-      # in .github/copilot/skills/ directory
+      # Copilot CLI uses: gh copilot -- plugin install <source>
       if [[ "$cmd" == "npx skills add"* ]]; then
-        # Copilot doesn't support npx skills - warn user
-        echo "UNSUPPORTED:Copilot doesn't support npx skills installation. See docs/REFERENCES.md for Copilot skill setup."
-        return
+        local repo="${cmd#npx skills add }"
+        repo="${repo%% *}"  # Get first argument
+        # Convert npx skills add to copilot plugin install
+        cmd="gh copilot -- plugin install $repo"
       fi
       ;;
 
@@ -561,7 +559,7 @@ cmd_install() {
     codex)
       printf '  Skills installed to .codex/skills/\n' ;;
     copilot)
-      printf '  See docs/REFERENCES.md for Copilot skill configuration\n' ;;
+      printf '  Skills installed via gh copilot -- plugin install\n' ;;
     claude)
       printf '  Skills installed to .claude/skills/\n' ;;
     *)
@@ -728,6 +726,11 @@ cmd_remove() {
         pkg="${pkg%"${pkg##*[![:space:]]}"}"
         remove_cmd="pi remove $pkg"
       fi
+    fi
+
+    # Check if we're targeting Copilot platform
+    if [[ "$platform_filter" == "copilot" ]]; then
+      remove_cmd="gh copilot -- plugin uninstall $name"
     fi
 
     # Fallback: try npx skills remove for anything not in catalog

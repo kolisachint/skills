@@ -32,7 +32,7 @@ The `install_command` in `catalog.tsv` uses neutral/base commands (typically `np
 | `opencode` | Adds `-a opencode -g -y` flags to `npx skills add` commands |
 | `pi` | Converts `npm install <pkg>` with `pi-extension` to `pi install npm:<pkg>`; Converts `npx skills add owner/repo` to `pi install https://github.com/owner/repo` |
 | `codex` | Converts `npx skills add owner/repo` to `codex skills add <skill-name>` |
-| `copilot` | Returns UNSUPPORTED — Copilot uses VS Code extensions, not CLI skill installation |
+| `copilot` | Converts `npx skills add owner/repo` to `gh copilot -- plugin install owner/repo` |
 | `claude` | No transform needed — uses `npx skills` as-is |
 
 This means you can use the same catalog for all platforms. The installer adapts commands automatically.
@@ -62,7 +62,7 @@ pi install https://github.com/obra/superpowers
 codex skills add superpowers
 
 # With --platform copilot:
-⚠ UNSUPPORTED: See docs/REFERENCES.md for Copilot skill setup
+gh copilot -- plugin install obra/superpowers
 ```
 
 ---
