@@ -400,9 +400,15 @@ function Transform-CommandForPlatform {
 
     "copilot" {
       # Copilot CLI uses: gh copilot -- plugin install <source>
+      # or just: copilot -- plugin install <source>
       if ($Command -match '^npx\s+skills\s+add\s+([^\s]+)') {
         $repo = $matches[1].Trim()
-        return "gh copilot -- plugin install $repo"
+        # Check if copilot command is available directly
+        if (Get-Command copilot -ErrorAction SilentlyContinue) {
+          return "copilot -- plugin install $repo"
+        } else {
+          return "gh copilot -- plugin install $repo"
+        }
       }
     }
 
@@ -679,7 +685,11 @@ function Cmd-Remove {
 
     # Check if targeting Copilot platform
     if ($PlatformFilter -eq "copilot") {
-      $removeCmd = "gh copilot -- plugin uninstall $skillName"
+      if (Get-Command copilot -ErrorAction SilentlyContinue) {
+        $removeCmd = "copilot -- plugin uninstall $skillName"
+      } else {
+        $removeCmd = "gh copilot -- plugin uninstall $skillName"
+      }
     }
 
     # Fallback: try npx skills remove for anything not in catalog

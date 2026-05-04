@@ -400,11 +400,16 @@ transform_command_for_platform() {
 
     copilot)
       # Copilot CLI uses: gh copilot -- plugin install <source>
+      # or just: copilot -- plugin install <source>
       if [[ "$cmd" == "npx skills add"* ]]; then
         local repo="${cmd#npx skills add }"
         repo="${repo%% *}"  # Get first argument
-        # Convert npx skills add to copilot plugin install
-        cmd="gh copilot -- plugin install $repo"
+        # Check which copilot command is available
+        if command -v copilot &> /dev/null; then
+          cmd="copilot -- plugin install $repo"
+        else
+          cmd="gh copilot -- plugin install $repo"
+        fi
       fi
       ;;
 
@@ -730,7 +735,11 @@ cmd_remove() {
 
     # Check if we're targeting Copilot platform
     if [[ "$platform_filter" == "copilot" ]]; then
-      remove_cmd="gh copilot -- plugin uninstall $name"
+      if command -v copilot &> /dev/null; then
+        remove_cmd="copilot -- plugin uninstall $name"
+      else
+        remove_cmd="gh copilot -- plugin uninstall $name"
+      fi
     fi
 
     # Fallback: try npx skills remove for anything not in catalog
