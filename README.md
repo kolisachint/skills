@@ -4,111 +4,119 @@ Curated components for coding agents, organized by how you use them, where you u
 
 ## Quick Start
 
-### 1. See What's Already Installed
+All commands work via **curl** (no clone needed) or locally after cloning.
 
-First, check what skills you already have across all your agents:
+---
 
+### 1. List Installed Skills
+
+See what skills you already have across all agents:
+
+**macOS / Linux:**
 ```bash
-# macOS / Linux — see all user-installed skills (hides system packages)
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list-skills.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list | bash
 ```
 
-**Windows:**
+**Windows (PowerShell):**
 ```powershell
-# Clone and run locally
-irm https://raw.githubusercontent.com/kolisachint/skills/main/list-skills.ps1 | iex
+irm https://raw.githubusercontent.com/kolisachint/skills/main/list | iex
+```
+
+**Or clone and run locally:**
+```bash
+git clone https://github.com/kolisachint/skills.git && cd skills
+./list
 ```
 
 **Shows:** Local project skills, global user skills, npm packages, CLI tools  
 **Hides:** System packages (npm, corepack, agent CLIs)
 
-#### Showcase Installed Skills in Your README
-
-Generate a markdown table of your installed skills for documentation:
+#### Generate README Table
 
 ```bash
-# Generate README-formatted skill list
-./list-skills.sh --format readme
-```
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list | bash -s -- --format readme
 
-**Example Output:**
-```markdown
-## My Installed Skills
-
-| Skill | Platform | Type |
-|-------|----------|------|
-| caveman | Claude | Command |
-| cavecrew | Claude | Skill |
-| compress | Claude | Skill |
-
-*Generated with [Portable AI Skillkit](https://github.com/kolisachint/skills)*
-```
-
-**Or manually list your skills:**
-```bash
-# Get just skill names for copy-paste
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list-skills.sh | bash | grep "•"
+# Windows
+irm https://raw.githubusercontent.com/kolisachint/skills/main/list | iex -format readme
 ```
 
 ---
 
-### 2. Install from Catalog
+### 2. Install Skills
 
+Install from catalog or directly from GitHub:
+
+**From catalog (macOS / Linux):**
 ```bash
-# macOS / Linux — install a specific skill
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- caveman
-
-# Or install multiple skills
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- caveman,grill-me
-
-# Or clone and install locally
-git clone https://github.com/kolisachint/skills.git && cd skills
-./install.sh caveman              # one skill
-./install.sh caveman grill-me     # multiple
-./install.sh --category workflow  # by category
-./install.sh --target ~/repo      # everything
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- caveman
 ```
 
-**Windows:**
+**From catalog (Windows):**
 ```powershell
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex -caveman
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -skill caveman
 ```
 
----
-
-### 3. Discover & Search
-
+**Direct from GitHub (any repo):**
 ```bash
-./install.sh list              # all components
-./install.sh list-categories   # by category
-./install.sh list-platforms    # by platform
-./install.sh search review     # search
-./install.sh top 5             # top starred
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- --direct owner/repo
+
+# Windows
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -direct owner/repo
+```
+
+**With platform-specific installation:**
+```bash
+# macOS / Linux — install for Copilot
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- --platform copilot --direct obra/superpowers
+
+# Windows — install for Copilot
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -platform copilot -direct obra/superpowers
+```
+
+**Or clone locally:**
+```bash
+git clone https://github.com/kolisachint/skills.git && cd skills
+./install caveman                          # from catalog
+./install --direct owner/repo              # from GitHub
+./install --platform pi --direct owner/repo # platform-specific
+./install --category workflow              # install category
 ```
 
 ---
 
-### 4. Remove Skills
+### 3. Remove Skills
 
 Remove from **both** local project AND global directories:
 
+**macOS / Linux:**
 ```bash
-# macOS / Linux — remove without cloning
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- remove caveman
+# Remove single skill
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/remove | bash -s -- caveman
 
-# Remove multiple skills
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- remove caveman,grill-me
+# Remove multiple
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/remove | bash -s -- caveman grill-me
 
-# Or clone and remove locally
-git clone https://github.com/kolisachint/skills.git && cd skills
-./install.sh remove caveman           # one skill
-./install.sh remove caveman grill-me  # multiple
-./install.sh remove --all             # everything everywhere
+# Remove ALL skills everywhere
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/remove | bash -s -- --all
 ```
 
 **Windows:**
 ```powershell
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex -remove caveman
+# Remove single skill
+irm https://raw.githubusercontent.com/kolisachint/skills/main/remove | iex -skill caveman
+
+# Remove ALL skills everywhere
+irm https://raw.githubusercontent.com/kolisachint/skills/main/remove | iex -all
+```
+
+**Or clone locally:**
+```bash
+./remove caveman              # remove single
+./remove caveman grill-me     # remove multiple
+./remove --all                # remove everything
+./remove --platform copilot caveman  # remove from specific platform
 ```
 
 **Output shows all locations:**
@@ -125,62 +133,62 @@ irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex 
 ✓ Removal complete
 ```
 
-**Global directories checked:**
-- `~/.claude/skills/` and `~/.claude/commands/`
-- `~/.pi/skills/`
-- `~/.opencode/skills/` and `~/.opencode/command/`
-- `~/.config/opencode/skills/` and `~/.config/opencode/command/`
-- `~/.codex/skills/`
-- `~/.gemini/commands/`
-- `~/.github/copilot/skills/`
+---
+
+### 4. Add Skill to Catalog
+
+Add a new skill to `catalog.tsv`:
+
+**macOS / Linux:**
+```bash
+# Quick add with GitHub repo
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/add | bash -s -- my-skill --github owner/repo --category skill
+
+# With npm package
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/add | bash -s -- my-tool --npm my-package --category tool
+
+# Interactive mode (prompts for fields)
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/add | bash -s -- my-skill
+```
+
+**Windows:**
+```powershell
+# Quick add with GitHub repo
+irm https://raw.githubusercontent.com/kolisachint/skills/main/add | iex -name my-skill -github owner/repo -category skill
+```
+
+**Or clone locally (recommended for editing):**
+```bash
+git clone https://github.com/kolisachint/skills.git && cd skills
+./add my-skill --github owner/repo --category skill
+./add my-tool --npm my-package --category tool --stars 1K
+./add my-skill  # interactive mode
+```
 
 ---
 
-### 5. Add New Skill to Catalog
+### 5. Discover & Search
 
-To add a new skill to this catalog, edit `catalog.tsv`:
+**Browse the catalog:**
 
 ```bash
-# Clone the repo
-git clone https://github.com/kolisachint/skills.git && cd skills
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- list
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- search review
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- top 5
 
-# Edit the catalog
-vim catalog.tsv  # or use your preferred editor
+# Windows
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -command list
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -command search -keyword review
 ```
 
-**Add a new row with these columns:**
-
-```tsv
-name	category	source	platforms	agent_target	description	install_command	stars	remove_command	docs_url
-```
-
-**Example entry:**
-```tsv
-my-skill	skill	external	all	all	My custom skill description	npx skills add owner/my-skill --yes	1K	npx skills remove my-skill --yes	https://github.com/owner/my-skill
-```
-
-**Field descriptions:**
-| Field | Example | Notes |
-|-------|---------|-------|
-| `name` | `my-skill` | Unique identifier, kebab-case |
-| `category` | `skill` | One of: skill, prompt, command, tool, agent, workflow |
-| `source` | `external` | `external` for GitHub/npm, `local` for custom |
-| `platforms` | `all` | Comma-separated: all, opencode, pi, copilot, codex, claude |
-| `agent_target` | `all` | Which agent this targets |
-| `description` | Short text | Max ~100 chars |
-| `install_command` | `npx skills add...` | Neutral form; transforms per platform |
-| `stars` | `1K` | GitHub star count (optional) |
-| `remove_command` | `npx skills remove...` | How to uninstall |
-| `docs_url` | `https://github.com/...` | Link to README |
-
-**Then commit and push:**
+**Or locally:**
 ```bash
-git add catalog.tsv
-git commit -m "Add my-skill to catalog"
-git push origin
+./install list              # all components
+./install list-categories   # by category
+./install search review     # search
+./install top 5             # top starred
 ```
-
-See `docs/CATALOG_FORMAT.md` for full details on platform transforms and format.
 
 ---
 
@@ -233,7 +241,8 @@ agent-skills	skill	all	daily-driver	external
 
 **Batch install from favorites:**
 ```bash
-./install.sh --target ~/repo --from favorites.tsv --tag daily-driver
+./install --target ~/repo --from favorites.tsv --tag daily-driver
+```
 
 ---
 
@@ -276,13 +285,13 @@ Commands are automatically transformed for your target platform:
 **Example:**
 ```bash
 # Install superpowers workflow for OpenCode
-./install.sh --target ~/repo --platform opencode --skill superpowers
+./install --target ~/repo --platform opencode --skill superpowers
 
 # Install for Pi (transforms to pi install)
-./install.sh --target ~/repo --platform pi --skill superpowers
+./install --target ~/repo --platform pi --skill superpowers
 
 # Install for Copilot (requires 'gh' CLI with Copilot extension)
-./install.sh --target ~/repo --platform copilot --skill superpowers
+./install --target ~/repo --platform copilot --skill superpowers
 # → Transforms to: gh copilot -- plugin install obra/superpowers
 ```
 
@@ -344,9 +353,11 @@ Core beliefs:
 
 | File | Purpose |
 |------|---------|
-| `install.sh` | One-shot installer for macOS/Linux (can be curled) |
-| `install.ps1` | One-shot installer for Windows |
-| `list-skills.sh` | List all installed skills (local + global) |
+| `install` | Install skills from catalog or GitHub repos |
+| `remove` | Remove skills (local + global) |
+| `list` | List installed skills |
+| `add` | Add new skill to catalog.tsv |
+| `install.ps1` | Windows PowerShell installer |
 | `catalog.tsv` | Single source of truth for all components |
 | `favorites.tsv` | Personal shortlist for batch install |
 | `AGENTS.md` | Project-specific agent instructions |
