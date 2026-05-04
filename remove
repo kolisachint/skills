@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
 # Remove skills from local project and global directories
 
-set -euo pipefail
+set -eo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  SCRIPT_DIR="."
+fi
 CATALOG="${SCRIPT_DIR}/catalog.tsv"
 
 # Global skill directories

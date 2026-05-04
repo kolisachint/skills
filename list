@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # List user-installed skills across all agent platforms
 
-set -euo pipefail
+set -eo pipefail
 
 EXCLUDE_PATTERNS="^\.|runtime|system|corepack|^npm$|^@mariozechner/pi-coding-agent$|^@openai/codex$"
 

@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Install skills from catalog or directly from GitHub repos
 
-set -euo pipefail
+set -eo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo '.')"
+# Handle piped execution (curl | bash) - BASH_SOURCE may not be available
+if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo '.')"
+else
+  SCRIPT_DIR="."
+fi
 CATALOG="${SCRIPT_DIR}/catalog.tsv"
 
 # Handle piped execution (curl | bash)
