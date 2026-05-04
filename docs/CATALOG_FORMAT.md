@@ -8,18 +8,19 @@ This document describes the TSV file formats used by the Portable AI Skillkit.
 
 Single source of truth for all skills, prompts, commands, tools, agents, and workflows.
 
-### Columns
+### Columns (in order)
 
-| Column | Description |
-|--------|-------------|
-| `name` | Unique component identifier (kebab-case) |
-| `category` | `skill`, `prompt`, `command`, `tool`, `agent`, `workflow` |
-| `source` | `external` — from actively maintained third-party repos |
-| `platforms` | Comma-separated: `all`, `opencode`, `pi`, `copilot`, `codex`, `claude` |
-| `agent_target` | `all` or a specific agent/platform name |
-| `description` | Concise operational description |
-| `install_command` | Shell command to install the component |
-| `stars` | GitHub star count (e.g. `90K`, `5K`, `4.6K`) |
+| Column           | Description                                                                 |
+|------------------|-----------------------------------------------------------------------------|
+| name             | Unique identifier (kebab-case, no spaces)                                   |
+| category         | One of: skill, prompt, command, tool, agent, workflow                      |
+| source           | 'external' (from third-party repo) or 'local'                               |
+| platforms        | Comma-separated: all, opencode, pi, copilot, codex, claude                 |
+| agent_target     | 'all' or a specific agent/platform name                                     |
+| description      | Concise operational summary (max 100 chars)                                 |
+| install_command  | Shell command to install the component (neutral form, e.g. npx skills add) |
+| stars            | GitHub star count (e.g. 90K, 5K, 4.6K)                                     |
+| remove_command   | Shell command to remove/uninstall the component                             |
 
 ### Platform-specific install commands
 
