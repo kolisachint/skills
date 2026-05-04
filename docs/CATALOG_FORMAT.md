@@ -21,6 +21,7 @@ Single source of truth for all skills, prompts, commands, tools, agents, and wor
 | install_command  | Shell command to install the component (neutral form, e.g. npx skills add) |
 | stars            | GitHub star count (e.g. 90K, 5K, 4.6K)                                     |
 | remove_command   | Shell command to remove/uninstall the component                             |
+| docs_url         | URL to official documentation (GitHub README or npm page)                   |
 
 ### Platform-specific install commands
 
@@ -35,6 +36,16 @@ The `install_command` in `catalog.tsv` uses neutral/base commands (typically `np
 | `claude` | No transform needed — uses `npx skills` as-is |
 
 This means you can use the same catalog for all platforms. The installer adapts commands automatically.
+
+### Post-install setup commands
+
+Some skills require additional setup after installation:
+
+| Skill | Setup Command | Purpose |
+|-------|--------------|---------|
+| grill-me | `/setup-matt-pocock-skills` | Configure issue tracker, labels, docs location |
+
+These setup commands are documented in `docs/SKILL_SOURCES.md` alongside the official README instructions.
 
 **Example:**
 ```bash
