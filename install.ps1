@@ -531,13 +531,76 @@ function Cmd-Install {
 }
 
 # ---------------------------------------------------------------------------
-# Remove command
+# Remove command - local and global
 # ---------------------------------------------------------------------------
+
+# Global skill directories to check/remove from
+$script:GlobalSkillDirs = @(
+  "$env:USERPROFILE/.claude/skills",
+  "$env:USERPROFILE/.claude/commands",
+  "$env:USERPROFILE/.pi/skills",
+  "$env:USERPROFILE/.opencode/skills",
+  "$env:USERPROFILE/.opencode/command",
+  "$env:USERPROFILE/.config/opencode/skills",
+  "$env:USERPROFILE/.config/opencode/command",
+  "$env:USERPROFILE/.codex/skills",
+  "$env:USERPROFILE/.gemini/commands",
+  "$env:USERPROFILE/.github/copilot/skills"
+)
+
+# Remove skill from global directories
+function Remove-GlobalSkill {
+  param([string]$SkillName)
+  
+  $removed = $false
+  
+  foreach ($dir in $script:GlobalSkillDirs) {
+    if (Test-Path $dir) {
+      $items = Get-ChildItem -Path $dir -Force | Where-Object { 
+        $_.Name -eq $SkillName -or $_.Name -like "$SkillName-*"
+      }
+      
+      foreach ($item in $items) {
+        Remove-Item -Path $item.FullName -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "    ✓ Removed from ${dir}: $($item.Name)"
+        $removed = $true
+      }
+    }
+  }
+  
+  return $removed
+}
+
+# Remove npm global package
+function Remove-NpmGlobal {
+  param([string]$Pattern)
+  
+  try {
+    $npmList = npm list -g --depth=0 2>$null | Select-String -Pattern "^[^\s]*[├└]─"
+    $matching = $npmList | Where-Object { $_ -match $Pattern }
+    
+    if ($matching) {
+      foreach ($line in $matching) {
+        if ($line -match "([a-zA-Z0-9@\-/_]+)@") {
+          $pkg = $matches[1]
+          npm uninstall -g $pkg 2>$null | Out-Null
+          Write-Host "    ✓ Removed npm global: $pkg"
+        }
+      }
+      return $true
+    }
+  }
+  catch {
+    # Ignore errors
+  }
+  return $false
+}
 
 function Cmd-Remove {
   param(
     [string]$Target = "",
     [string]$SkillFilter = "",
+    [string]$PlatformFilter = "",
     [switch]$All = $false
   )
 
@@ -555,11 +618,20 @@ function Cmd-Remove {
       Set-Location $Target
       Invoke-Expression "npx skills remove --all --yes"
       Set-Location $origDir
-      Write-Host "✓ All skills removed"
+      Write-Host "✓ All local skills removed"
     }
     catch {
       Set-Location $origDir
-      Write-Warning "  ⚠ bulk removal failed (non-fatal): $_"
+      Write-Warning "  ⚠ bulk local removal failed (non-fatal): $_"
+    }
+    
+    # Also remove from global directories
+    Write-Host "Removing global skills..."
+    foreach ($dir in $script:GlobalSkillDirs) {
+      if (Test-Path $dir) {
+        Remove-Item -Path "$dir/*" -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "  ✓ Cleared $dir"
+      }
     }
     return
   }
@@ -576,9 +648,12 @@ function Cmd-Remove {
   $catalog = Read-Catalog
 
   foreach ($skillName in $skills) {
+    Write-Host ""
+    Write-Host "→ $skillName"
+    
     $comp = $catalog | Where-Object { $_.Name -eq $skillName } | Select-Object -First 1
 
-    # Look up in catalog first
+    # 1. Remove from local target directory
     $removeCmd = $null
     if ($comp -and $comp.RemoveCommand -and $comp.RemoveCommand -ne "-") {
       $removeCmd = $comp.RemoveCommand
@@ -606,24 +681,37 @@ function Cmd-Remove {
       $removeCmd = "npx skills remove $skillName --yes"
     }
 
-    Write-Host "  → $skillName"
-    Write-Host "    $removeCmd"
-
+    Write-Host "  Local: $removeCmd"
     try {
       $origDir = Get-Location
       Set-Location $Target
-      Invoke-Expression $removeCmd
+      Invoke-Expression $removeCmd | Out-Null
       Set-Location $origDir
-      Write-Host "  ✓ $skillName removed"
-      Write-Host ""
+      Write-Host "    ✓ Removed from local project"
     }
     catch {
       Set-Location $origDir
-      Write-Warning "  ⚠ $skillName removal failed (non-fatal): $_"
-      Write-Host ""
+      Write-Host "    ℹ Not found in local project (or already removed)"
+    }
+
+    # 2. Remove from global directories
+    Write-Host "  Global directories..."
+    if (Remove-GlobalSkill -SkillName $skillName) {
+      # Items were removed (output already printed)
+    } else {
+      Write-Host "    ℹ Not found in global directories"
+    }
+
+    # 3. Also try npm global removal
+    Write-Host "  NPM global packages..."
+    if (Remove-NpmGlobal -Pattern $skillName) {
+      # Packages were removed (output already printed)
+    } else {
+      Write-Host "    ℹ No matching npm global packages"
     }
   }
 
+  Write-Host ""
   Write-Host "✓ Removal complete"
 }
 
