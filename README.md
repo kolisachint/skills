@@ -22,6 +22,34 @@ irm https://raw.githubusercontent.com/kolisachint/skills/main/list-skills.ps1 | 
 **Shows:** Local project skills, global user skills, npm packages, CLI tools  
 **Hides:** System packages (npm, corepack, agent CLIs)
 
+#### Showcase Installed Skills in Your README
+
+Generate a markdown table of your installed skills for documentation:
+
+```bash
+# Generate README-formatted skill list
+./list-skills.sh --format readme
+```
+
+**Example Output:**
+```markdown
+## My Installed Skills
+
+| Skill | Platform | Type |
+|-------|----------|------|
+| caveman | Claude | Command |
+| cavecrew | Claude | Skill |
+| compress | Claude | Skill |
+
+*Generated with [Portable AI Skillkit](https://github.com/kolisachint/skills)*
+```
+
+**Or manually list your skills:**
+```bash
+# Get just skill names for copy-paste
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list-skills.sh | bash | grep "•"
+```
+
 ---
 
 ### 2. Install from Catalog
