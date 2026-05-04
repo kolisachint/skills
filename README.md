@@ -353,11 +353,14 @@ Core beliefs:
 
 | File | Purpose |
 |------|---------|
-| `install` | Install skills from catalog or GitHub repos |
-| `remove` | Remove skills (local + global) |
-| `list` | List installed skills |
-| `add` | Add new skill to catalog.tsv |
-| `install.ps1` | Windows PowerShell installer |
+| `install` | Install skills (Bash) |
+| `remove` | Remove skills (Bash) |
+| `list` | List installed skills (Bash) |
+| `add` | Add skill to catalog (Bash) |
+| `install.ps1` | Install skills (PowerShell) |
+| `remove.ps1` | Remove skills (PowerShell) |
+| `list.ps1` | List installed skills (PowerShell) |
+| `add.ps1` | Add skill to catalog (PowerShell) |
 | `catalog.tsv` | Single source of truth for all components |
 | `favorites.tsv` | Personal shortlist for batch install |
 | `AGENTS.md` | Project-specific agent instructions |
