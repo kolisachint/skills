@@ -93,14 +93,22 @@ irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex 
 Remove from **both** local project AND global directories:
 
 ```bash
-# Remove a skill from everywhere
-./install.sh remove caveman
+# macOS / Linux — remove without cloning
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- remove caveman
 
-# Remove multiple
-./install.sh remove caveman grill-me
+# Remove multiple skills
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- remove caveman,grill-me
 
-# Remove ALL skills everywhere
-./install.sh remove --all
+# Or clone and remove locally
+git clone https://github.com/kolisachint/skills.git && cd skills
+./install.sh remove caveman           # one skill
+./install.sh remove caveman grill-me  # multiple
+./install.sh remove --all             # everything everywhere
+```
+
+**Windows:**
+```powershell
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex -remove caveman
 ```
 
 **Output shows all locations:**
