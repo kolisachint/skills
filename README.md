@@ -4,158 +4,89 @@ Curated components for coding agents, organized by how you use them, where you u
 
 ## Quick Start
 
-### One-liner (no clone)
+### 1. See What's Already Installed
+
+First, check what skills you already have across all your agents:
 
 ```bash
-# macOS / Linux — install a specific skill directly into current directory
+# macOS / Linux — see all user-installed skills (hides system packages)
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list-skills.sh | bash
+```
+
+**Windows:**
+```powershell
+# Clone and run locally
+irm https://raw.githubusercontent.com/kolisachint/skills/main/list-skills.ps1 | iex
+```
+
+**Shows:** Local project skills, global user skills, npm packages, CLI tools  
+**Hides:** System packages (npm, corepack, agent CLIs)
+
+---
+
+### 2. Install from Catalog
+
+```bash
+# macOS / Linux — install a specific skill
 curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- caveman
 
 # Or install multiple skills
 curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- caveman,grill-me
 
-# With explicit target
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install.sh | bash -s -- --target ~/repo --skill caveman
-```
-
-**Windows:**
-```powershell
-# Install a specific skill directly into current directory
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex -caveman
-
-# Or with explicit target
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex -target C:\code\repo -skill caveman
-```
-
-### Git clone + install
-
-```bash
-# 1. Clone
+# Or clone and install locally
 git clone https://github.com/kolisachint/skills.git && cd skills
-
-# 2. Install a specific skill (defaults to current directory)
-./install.sh caveman
-
-# 3. Or install multiple skills
-./install.sh caveman grill-me
-
-# 4. Or install by category
-./install.sh --target ~/repo --category workflow
-
-# 5. Or install everything in the catalog
-./install.sh --target ~/repo
+./install.sh caveman              # one skill
+./install.sh caveman grill-me     # multiple
+./install.sh --category workflow  # by category
+./install.sh --target ~/repo      # everything
 ```
 
 **Windows:**
 ```powershell
-git clone https://github.com/kolisachint/skills.git; cd skills
-.\install.ps1 caveman
-.\install.ps1 caveman, grill-me
-.\install.ps1 --target C:\code\repo --category workflow
-.\install.ps1 --target C:\code\repo
-```
-
-### Bootstrap from Favorites
-
-Curate your most-used components in `favorites.tsv`, then batch-install:
-
-```bash
-# macOS / Linux — install everything tagged "daily-driver" or "critical"
-./install.sh --target ~/repo --from favorites.tsv --tag daily-driver,critical
-
-# macOS / Linux — via Make
-make bootstrap-ai TARGET=~/repo
-
-# Windows — install everything tagged "daily-driver" or "critical"
-.\install.ps1 --target C:\code\repo --from favorites.tsv --tag daily-driver,critical
+irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex -caveman
 ```
 
 ---
 
-## Discover & Search
+### 3. Discover & Search
 
 ```bash
-# macOS / Linux
-./install.sh list
-./install.sh list-categories
-./install.sh list-platforms
-./install.sh search review
-./install.sh search codex
-./install.sh search debug
-./install.sh top        # default top 10
-./install.sh top 5      # top 5 only
-
-# Windows
-.\install.ps1 list
-.\install.ps1 list-categories
-.\install.ps1 list-platforms
-.\install.ps1 search review
-.\install.ps1 search codex
-.\install.ps1 search debug
-.\install.ps1 top
-.\install.ps1 top 5
+./install.sh list              # all components
+./install.sh list-categories   # by category
+./install.sh list-platforms    # by platform
+./install.sh search review     # search
+./install.sh top 5             # top starred
 ```
 
-## Manage Skills
+---
+
+### 4. Remove Skills
+
+Remove from **both** local project AND global directories:
 
 ```bash
-# macOS / Linux
-./install.sh installed                  # list what's installed (local project)
-./install.sh remove caveman             # remove from local + global
-./install.sh remove caveman grill-me    # remove multiple
-./install.sh remove --all               # remove ALL skills (local + global)
-./install.sh update                     # update all skills
-./install.sh update caveman             # update one skill
-
-# Windows
-.\install.ps1 installed
-.\install.ps1 remove caveman
-.\install.ps1 remove caveman, grill-me
-.\install.ps1 remove --all
-.\install.ps1 update
-.\install.ps1 update caveman
-```
-
-### List All Installed Skills
-
-Use the standalone `list-skills.sh` script to see all user-installed skills (hides system packages):
-
-```bash
-# Clone and run locally
-git clone https://github.com/kolisachint/skills.git && cd skills
-./list-skills.sh
-
-# Or download and run directly
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list-skills.sh | bash
-```
-
-**Shows:**
-- Local project skills (`.claude/skills/`, `.pi/skills/`, etc.)
-- Global user skills (`~/.claude/skills/`, `~/.pi/skills/`, etc.)
-- User-installed npm packages (excludes npm, corepack, agent CLIs)
-- Available CLI tools
-
-**Hides system packages:** npm, corepack, @mariozechner/pi-coding-agent, @openai/codex, .system files
-
-### Remove Command (Local + Global)
-
-The remove command now cleans up skills from **both** your local project AND global user directories:
-
-```bash
-# Remove from everywhere
+# Remove a skill from everywhere
 ./install.sh remove caveman
 
-# Output shows all locations:
-# → caveman
-#   Local: npx skills remove caveman --yes
-#     ✓ Removed from local project
-#   Global directories...
-#     ✓ Removed from ~/.claude/skills: caveman
-#     ✓ Removed from ~/.claude/skills: caveman-help
-#     ✓ Removed from ~/.claude/skills: caveman-stats
-#   NPM global packages...
-#     ℹ No matching npm global packages
-#
-# ✓ Removal complete
+# Remove multiple
+./install.sh remove caveman grill-me
+
+# Remove ALL skills everywhere
+./install.sh remove --all
+```
+
+**Output shows all locations:**
+```
+→ caveman
+  Local: npx skills remove caveman --yes
+    ✓ Removed from local project
+  Global directories...
+    ✓ Removed from ~/.claude/skills: caveman
+    ✓ Removed from ~/.claude/skills: caveman-help
+  NPM global packages...
+    ℹ No matching npm global packages
+
+✓ Removal complete
 ```
 
 **Global directories checked:**
@@ -167,12 +98,59 @@ The remove command now cleans up skills from **both** your local project AND glo
 - `~/.gemini/commands/`
 - `~/.github/copilot/skills/`
 
-**Remove all skills everywhere:**
+---
+
+### 5. Add New Skill to Catalog
+
+To add a new skill to this catalog, edit `catalog.tsv`:
+
 ```bash
-./install.sh remove --all
+# Clone the repo
+git clone https://github.com/kolisachint/skills.git && cd skills
+
+# Edit the catalog
+vim catalog.tsv  # or use your preferred editor
 ```
 
+**Add a new row with these columns:**
+
+```tsv
+name	category	source	platforms	agent_target	description	install_command	stars	remove_command	docs_url
+```
+
+**Example entry:**
+```tsv
+my-skill	skill	external	all	all	My custom skill description	npx skills add owner/my-skill --yes	1K	npx skills remove my-skill --yes	https://github.com/owner/my-skill
+```
+
+**Field descriptions:**
+| Field | Example | Notes |
+|-------|---------|-------|
+| `name` | `my-skill` | Unique identifier, kebab-case |
+| `category` | `skill` | One of: skill, prompt, command, tool, agent, workflow |
+| `source` | `external` | `external` for GitHub/npm, `local` for custom |
+| `platforms` | `all` | Comma-separated: all, opencode, pi, copilot, codex, claude |
+| `agent_target` | `all` | Which agent this targets |
+| `description` | Short text | Max ~100 chars |
+| `install_command` | `npx skills add...` | Neutral form; transforms per platform |
+| `stars` | `1K` | GitHub star count (optional) |
+| `remove_command` | `npx skills remove...` | How to uninstall |
+| `docs_url` | `https://github.com/...` | Link to README |
+
+**Then commit and push:**
+```bash
+git add catalog.tsv
+git commit -m "Add my-skill to catalog"
+git push origin
+```
+
+See `docs/CATALOG_FORMAT.md` for full details on platform transforms and format.
+
+---
+
 ## Curated Components
+
+Current catalog: 6 components across 4 categories.
 
 ### ⚡ Workflows
 
@@ -199,6 +177,27 @@ The remove command now cleans up skills from **both** your local project AND glo
 | Name | Platform | Description |
 |------|----------|-------------|
 | **codeburn** | all | Interactive TUI for token/cost observability *(4.6K★)* |
+
+---
+
+## Curating Favorites
+
+Use `favorites.tsv` to maintain your personal shortlist:
+
+```tsv
+name	category	platforms	tags	source
+superpowers	workflow	all	daily-driver	external
+agent-skills	skill	all	daily-driver	external
+```
+
+**Tags:**
+- `daily-driver` — install on every project
+- `occasional` — rare but important
+- `critical` — required for specific project types
+
+**Batch install from favorites:**
+```bash
+./install.sh --target ~/repo --from favorites.tsv --tag daily-driver
 
 ---
 
@@ -269,23 +268,6 @@ home directory paths.
 
 ---
 
-## Curating Favorites
-
-Use `favorites.tsv` to maintain your personal shortlist:
-
-```tsv
-name	category	platforms	tags	source
-superpowers	workflow	all	daily-driver	external
-agent-skills	skill	all	daily-driver	external
-```
-
-**Tags:**
-- `daily-driver` — install on every project
-- `occasional` — rare but important
-- `critical` — required for specific project types (e.g., `frontend-critical`)
-
-**Guideline:** Scrutinize before adding. Models evolve fast — only keep components that provide durable value beyond what base models can do.
-
 ## Component Catalog
 
 All components are defined in `catalog.tsv` — a single tab-separated file that
@@ -299,6 +281,11 @@ serves as the source of truth. Each component has:
 - **Description** — what it does
 - **Install command** — how to install external components
 - **Stars** — GitHub star count (for external components)
+
+**Documentation:**
+- [docs/CATALOG_FORMAT.md](docs/CATALOG_FORMAT.md) — Format details and platform transforms
+- [docs/SKILL_SOURCES.md](docs/SKILL_SOURCES.md) — Actual installation commands from READMEs
+- [docs/REFERENCES.md](docs/REFERENCES.md) — Platform documentation links
 
 ---
 
@@ -321,13 +308,13 @@ Core beliefs:
 
 | File | Purpose |
 |------|---------|
-| `install.sh` | One-shot installer (can be curled) |
+| `install.sh` | One-shot installer for macOS/Linux (can be curled) |
 | `install.ps1` | One-shot installer for Windows |
+| `list-skills.sh` | List all installed skills (local + global) |
 | `catalog.tsv` | Single source of truth for all components |
-| `PHILOSOPHY.md` | Curator's manifesto and design principles |
-| `docs/WHY_THESE_TOOLS.md` | Comparison with alternatives |
-| `docs/REFERENCES.md` | Platform documentation links |
-| `MIGRATION.md` | Upgrade guide from previous versions |
 | `favorites.tsv` | Personal shortlist for batch install |
-| `install.sh` | Unified CLI for macOS/Linux |
-| `install.ps1` | Unified CLI for Windows |
+| `AGENTS.md` | Project-specific agent instructions |
+| `PHILOSOPHY.md` | Curator's manifesto and design principles |
+| `docs/CATALOG_FORMAT.md` | TSV format and platform transform docs |
+| `docs/SKILL_SOURCES.md` | Installation commands from READMEs |
+| `docs/REFERENCES.md` | Platform documentation links |
