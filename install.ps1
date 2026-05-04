@@ -399,9 +399,10 @@ function Transform-CommandForPlatform {
     }
 
     "copilot" {
-      # Copilot doesn't support CLI skill installation
-      if ($Command -match '^npx\s+skills\s+add') {
-        return "UNSUPPORTED:Copilot doesn't support npx skills installation. See docs/REFERENCES.md for Copilot skill setup."
+      # Copilot CLI uses: gh copilot -- plugin install <source>
+      if ($Command -match '^npx\s+skills\s+add\s+([^\s]+)') {
+        $repo = $matches[1].Trim()
+        return "gh copilot -- plugin install $repo"
       }
     }
 
@@ -524,7 +525,7 @@ function Cmd-Install {
     "opencode" { Write-Host "  Skills installed to .opencode/skills/" }
     "pi"       { Write-Host "  Skills installed to .pi/skills/" }
     "codex"    { Write-Host "  Skills installed to .codex/skills/" }
-    "copilot"  { Write-Host "  See docs/REFERENCES.md for Copilot skill configuration" }
+    "copilot"  { Write-Host "  Skills installed via gh copilot -- plugin install" }
     "claude"   { Write-Host "  Skills installed to .claude/skills/" }
     default    { Write-Host "  npx skills manages .agents/skills/ and platform symlinks automatically." }
   }
@@ -674,6 +675,11 @@ function Cmd-Remove {
         $pkg = $matches[1].Trim()
         $removeCmd = "pi remove $pkg"
       }
+    }
+
+    # Check if targeting Copilot platform
+    if ($PlatformFilter -eq "copilot") {
+      $removeCmd = "gh copilot -- plugin uninstall $skillName"
     }
 
     # Fallback: try npx skills remove for anything not in catalog
