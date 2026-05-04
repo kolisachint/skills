@@ -115,6 +115,27 @@ make bootstrap-ai TARGET=~/repo
 .\install.ps1 update caveman
 ```
 
+### List All Installed Skills
+
+Use the standalone `list-skills.sh` script to see all user-installed skills (hides system packages):
+
+```bash
+# Clone and run locally
+git clone https://github.com/kolisachint/skills.git && cd skills
+./list-skills.sh
+
+# Or download and run directly
+curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list-skills.sh | bash
+```
+
+**Shows:**
+- Local project skills (`.claude/skills/`, `.pi/skills/`, etc.)
+- Global user skills (`~/.claude/skills/`, `~/.pi/skills/`, etc.)
+- User-installed npm packages (excludes npm, corepack, agent CLIs)
+- Available CLI tools
+
+**Hides system packages:** npm, corepack, @mariozechner/pi-coding-agent, @openai/codex, .system files
+
 ### Remove Command (Local + Global)
 
 The remove command now cleans up skills from **both** your local project AND global user directories:
