@@ -3,8 +3,15 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd 2>/dev/null || echo '.')"
 CATALOG="${SCRIPT_DIR}/catalog.tsv"
+
+# Handle piped execution (curl | bash)
+if [[ ! -f "$CATALOG" && -t 0 ]]; then
+  echo "Note: catalog.tsv not found locally. Using --direct mode for GitHub repos." >&2
+  echo "Clone the repo to use catalog-based installation." >&2
+  echo "" >&2
+fi
 
 # Platform-specific command transformation
 transform_command_for_platform() {
