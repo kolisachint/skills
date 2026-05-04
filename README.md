@@ -271,7 +271,7 @@ Commands are automatically transformed for your target platform:
 | **Pi** | `npx skills add repo` → `pi install https://github.com/repo` | ✅ Fully supported |
 | **Claude** | `npx skills add repo` → `npx skills add repo --yes` | ✅ Fully supported |
 | **Codex** | `npx skills add repo` → `codex skills add <skill-name>` | ✅ Supported (transformed) |
-| **Copilot** | `npx skills add repo` → `gh copilot -- plugin install repo` | ✅ Supported (via gh CLI) |
+| **Copilot** | `npx skills add repo` → `gh copilot -- plugin install repo` | ✅ Supported (requires [gh CLI](https://cli.github.com/)) |
 
 **Example:**
 ```bash
@@ -281,8 +281,9 @@ Commands are automatically transformed for your target platform:
 # Install for Pi (transforms to pi install)
 ./install.sh --target ~/repo --platform pi --skill superpowers
 
-# Install for Copilot (transforms to gh copilot plugin install)
+# Install for Copilot (requires 'gh' CLI with Copilot extension)
 ./install.sh --target ~/repo --platform copilot --skill superpowers
+# → Transforms to: gh copilot -- plugin install obra/superpowers
 ```
 
 ---
