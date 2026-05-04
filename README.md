@@ -391,10 +391,12 @@ Core beliefs:
 | `remove` | Remove skills (Bash) |
 | `list` | List installed skills (Bash) |
 | `add` | Add skill to catalog (Bash) |
+| `verify` | Verify skill installations (Bash) |
 | `install.ps1` | Install skills (PowerShell) |
 | `remove.ps1` | Remove skills (PowerShell) |
 | `list.ps1` | List installed skills (PowerShell) |
 | `add.ps1` | Add skill to catalog (PowerShell) |
+| `verify.ps1` | Verify skill installations (PowerShell) |
 | `catalog.tsv` | Single source of truth for all components |
 | `favorites.tsv` | Personal shortlist for batch install |
 | `AGENTS.md` | Project-specific agent instructions |
