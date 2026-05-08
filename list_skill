@@ -8,7 +8,7 @@ TMPFILE="${TMPDIR:-/tmp}/skills_list_$$"
 
 usage() {
   cat <<'EOF'
-Usage: list [options]
+Usage: list_skill [options]
 
 List all user-installed skills (hides system packages).
 
@@ -17,8 +17,8 @@ Options:
   -h, --help         Show this help
 
 Examples:
-  list                           # Human readable output
-  list --format readme           # Markdown table for README
+  list_skill                           # Human readable output
+  list_skill --format readme           # Markdown table for README
 EOF
 }
 

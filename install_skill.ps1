@@ -14,7 +14,7 @@ param(
 
 if ($Help) {
     @"
-Usage: install.ps1 [options] [<skill-name> | <github-repo>]
+Usage: install_skill.ps1 [options] [<skill-name> | <github-repo>]
 
 Install skills from catalog or directly from GitHub repositories.
 
@@ -29,22 +29,35 @@ Options:
   -Help                 Show this help
 
 Examples:
-  .\install.ps1 caveman                    # Install from catalog
-  .\install.ps1 -Platform pi caveman       # Install for Pi
-  .\install.ps1 -Direct owner/repo         # Install from GitHub directly
-  .\install.ps1 -Platform copilot -Direct owner/repo  # Direct to Copilot
-  .\install.ps1 -Category workflow         # Install all workflow skills
+  .\install_skill.ps1 caveman                    # Install from catalog
+  .\install_skill.ps1 -Platform pi caveman       # Install for Pi
+  .\install_skill.ps1 -Direct owner/repo         # Install from GitHub directly
+  .\install_skill.ps1 -Platform copilot -Direct owner/repo  # Direct to Copilot
+  .\install_skill.ps1 -Category workflow         # Install all workflow skills
+  .\install_skill.ps1 -Skill superpowers,agent-skills,caveman,grill-me  # Install all 4 core skills
 
   # Via Invoke-Expression:
-  irm https://raw.githubusercontent.com/kolisachint/skills/main/install.ps1 | iex -skill caveman
+  irm https://raw.githubusercontent.com/kolisachint/skills/main/install_skill.ps1 | iex -skill caveman
 "@
     exit 0
 }
 
 $ErrorActionPreference = "Stop"
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Handle script path when run via irm | iex (no file path)
+$ScriptDir = if ($MyInvocation.MyCommand.Path) { 
+    Split-Path -Parent $MyInvocation.MyCommand.Path 
+} else { 
+    $PSScriptRoot 
+}
 if (-not $ScriptDir) { $ScriptDir = "." }
 $Catalog = Join-Path $ScriptDir "catalog.tsv"
+
+# Fallback to ~/github/skills if catalog not found in script directory
+$githubSkillsPath = Join-Path $env:USERPROFILE "github/skills/catalog.tsv"
+if (-not (Test-Path $Catalog) -and (Test-Path $githubSkillsPath)) {
+    $Catalog = $githubSkillsPath
+}
 
 # Get positional arguments
 $Repo = $args[0]
@@ -162,12 +175,21 @@ if ($Direct -and $Repo) {
 }
 
 # Catalog-based installation
+# Try to download catalog if not found locally (for irm | iex execution)
 if (-not (Test-Path $Catalog)) {
-    Write-Host "Note: catalog.tsv not found locally. Using -Direct mode for GitHub repos." -ForegroundColor Yellow
-    Write-Host "Clone the repo to use catalog-based installation." -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "Example: install.ps1 -Direct owner/repo"
-    exit 1
+    $catalogUrl = "https://raw.githubusercontent.com/kolisachint/skills/main/catalog.tsv"
+    $tempCatalog = Join-Path $env:TEMP "skills_catalog.tsv"
+    try {
+        Invoke-WebRequest -Uri $catalogUrl -OutFile $tempCatalog -UseBasicParsing
+        $Catalog = $tempCatalog
+        Write-Host "Downloaded catalog from GitHub" -ForegroundColor DarkGray
+    } catch {
+        Write-Host "Note: catalog.tsv not found locally. Using -Direct mode for GitHub repos." -ForegroundColor Yellow
+        Write-Host "Clone the repo to use catalog-based installation." -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "Example: install_skill.ps1 -Direct owner/repo"
+        exit 1
+    }
 }
 
 # If -From specified, read favorites and resolve to skill names

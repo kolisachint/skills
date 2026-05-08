@@ -11,10 +11,15 @@ else
 fi
 CATALOG="${SCRIPT_DIR}/catalog.tsv"
 
+# Fallback to ~/github/skills if catalog not found in script directory
+if [[ ! -f "$CATALOG" && -f "$HOME/github/skills/catalog.tsv" ]]; then
+  CATALOG="$HOME/github/skills/catalog.tsv"
+fi
+
 # Handle piped execution (curl | bash)
 if [[ ! -f "$CATALOG" && -t 0 ]]; then
   echo "Note: catalog.tsv not found locally. Using --direct mode for GitHub repos." >&2
-  echo "Clone the repo to use catalog-based installation." >&2
+  echo "Clone the repo to ~/github/skills to use catalog-based installation." >&2
   echo "" >&2
 fi
 
@@ -94,7 +99,7 @@ transform_command_for_platform() {
 
 usage() {
   cat <<'EOF'
-Usage: install [options] [<skill-name> | <github-repo>]
+Usage: install_skill [options] [<skill-name> | <github-repo>]
 
 Install skills from catalog or directly from GitHub repositories.
 
@@ -110,13 +115,14 @@ Options:
   -h, --help             Show this help
 
 Examples:
-  install caveman                    # Install from catalog
-  install --platform pi caveman      # Install for Pi
-  install --direct owner/repo        # Install from GitHub directly
-  install --platform copilot --direct owner/repo  # Direct to Copilot
-  install --category workflow        # Install all workflow skills
-  install --from favorites.tsv       # Install all favorites
-  install --from favorites.tsv --tag daily-driver  # Install tagged favorites
+  install_skill caveman                    # Install from catalog
+  install_skill --platform pi caveman      # Install for Pi
+  install_skill --direct owner/repo        # Install from GitHub directly
+  install_skill --platform copilot --direct owner/repo  # Direct to Copilot
+  install_skill --category workflow        # Install all workflow skills
+  install_skill --from favorites.tsv       # Install all favorites
+  install_skill --from favorites.tsv --tag daily-driver  # Install tagged favorites
+  install_skill superpowers agent-skills caveman grill-me  # Install all 4 core skills
 EOF
 }
 

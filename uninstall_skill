@@ -10,6 +10,11 @@ else
 fi
 CATALOG="${SCRIPT_DIR}/catalog.tsv"
 
+# Fallback to ~/github/skills if catalog not found in script directory
+if [[ ! -f "$CATALOG" && -f "$HOME/github/skills/catalog.tsv" ]]; then
+  CATALOG="$HOME/github/skills/catalog.tsv"
+fi
+
 # Global skill directories
 GLOBAL_SKILL_DIRS=(
   "$HOME/.claude/skills"
@@ -26,7 +31,7 @@ GLOBAL_SKILL_DIRS=(
 
 usage() {
   cat <<'EOF'
-Usage: remove [options] <skill-name> [<skill-name> ...]
+Usage: uninstall_skill [options] <skill-name> [<skill-name> ...]
 
 Remove skills from both local project and global directories.
 
@@ -37,10 +42,10 @@ Options:
   -h, --help             Show this help
 
 Examples:
-  remove caveman                    # Remove single skill
-  remove caveman grill-me           # Remove multiple
-  remove --all                      # Remove everything everywhere
-  remove --platform copilot caveman # Remove from Copilot
+  uninstall_skill caveman                    # Remove single skill
+  uninstall_skill caveman grill-me           # Remove multiple
+  uninstall_skill --all                      # Remove everything everywhere
+  uninstall_skill --platform copilot caveman # Remove from Copilot
 EOF
 }
 
@@ -183,6 +188,9 @@ for skill in "${SKILLS[@]}"; do
     fi
   elif [[ "$PLATFORM" == "pi" && "$skill" == "plannotator" ]]; then
     remove_cmd="pi remove npm:@plannotator/pi-extension"
+  elif [[ "$skill" == "plannotator" && "$remove_cmd" == "plannotator-binary" ]]; then
+    # Remove plannotator binary installed via curl
+    remove_cmd="rm -f ~/.local/bin/plannotator"
   fi
   
   # Fallback

@@ -52,6 +52,12 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 if (-not $ScriptDir) { $ScriptDir = "." }
 $Catalog = Join-Path $ScriptDir "catalog.tsv"
 
+# Fallback to ~/github/skills if catalog not found in script directory
+$githubSkillsPath = Join-Path $env:USERPROFILE "github/skills/catalog.tsv"
+if (-not (Test-Path $Catalog) -and (Test-Path $githubSkillsPath)) {
+    $Catalog = $githubSkillsPath
+}
+
 # Validate name
 if (-not $Name) {
     Write-Error "Skill name is required"

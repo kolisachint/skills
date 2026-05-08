@@ -1,159 +1,93 @@
 # Portable AI Skillkit
 
-Curated components for coding agents, organized by how you use them, where you use them, and who they're for.
+Curated components for coding agents. One catalog. All platforms. Zero friction.
 
 ## Quick Start
 
-All commands work via **curl** (no clone needed) or locally after cloning.
+No clone required — run directly via curl/PowerShell:
 
----
+| Action | macOS / Linux | Windows (PowerShell) |
+|--------|--------------|---------------------|
+| **List** installed skills | `curl -fsSL github.com/kolisachint/skills/raw/main/list_skill \| bash` | `irm github.com/kolisachint/skills/raw/main/list_skill \| iex` |
+| **Install** a skill | `curl -fsSL github.com/kolisachint/skills/raw/main/install_skill \| bash -s -- caveman` | `irm github.com/kolisachint/skills/raw/main/install_skill \| iex -skill caveman` |
+| **Uninstall** a skill | `curl -fsSL github.com/kolisachint/skills/raw/main/uninstall_skill \| bash -s -- caveman` | `irm github.com/kolisachint/skills/raw/main/uninstall_skill \| iex -skill caveman` |
+| **Verify** installation | `curl -fsSL github.com/kolisachint/skills/raw/main/verify \| bash -s -- plannotator` | `irm github.com/kolisachint/skills/raw/main/verify.ps1 \| iex -skill plannotator` |
 
-### 1. List Installed Skills
-
-See what skills you already have across all agents:
-
-**macOS / Linux:**
+**Install multiple at once:**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list | bash
-```
+# Productivity pack (macOS/Linux)
+curl -fsSL github.com/kolisachint/skills/raw/main/install_skill \
+  | bash -s -- --skill plannotator,grill-me,caveman,codeburn
 
-**Windows (PowerShell):**
-```powershell
-irm https://raw.githubusercontent.com/kolisachint/skills/main/list | iex
-```
-
-**Or clone and run locally:**
-```bash
-git clone https://github.com/kolisachint/skills.git && cd skills
-./list
-```
-
-**Shows:** Local project skills, global user skills, npm packages, CLI tools  
-**Hides:** System packages (npm, corepack, agent CLIs)
-
-#### Generate README Table
-
-```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/list | bash -s -- --format readme
-
-# Windows
-irm https://raw.githubusercontent.com/kolisachint/skills/main/list | iex -format readme
+# Core skills (Windows)
+irm github.com/kolisachint/skills/raw/main/install_skill \
+  | iex -skill superpowers,agent-skills,caveman,grill-me
 ```
 
 ---
 
-### 2. Install Skills
+## Local Setup (Recommended)
 
-Install from catalog or directly from GitHub:
+Clone once to `~/github/skills`, run from anywhere:
 
-**From catalog (macOS / Linux):**
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- caveman
+git clone https://github.com/kolisachint/skills.git ~/github/skills
+
+# Optional: add to PATH
+export PATH="$HOME/github/skills:$PATH"
+
+# Now run from any directory
+install_skill caveman
+install_skill --skill plannotator,grill-me,caveman,codeburn
+list_skill
+uninstall_skill caveman
 ```
 
-**From catalog (Windows):**
-```powershell
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -skill caveman
-```
-
-**Direct from GitHub (any repo):**
-```bash
-# macOS / Linux
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- --direct owner/repo
-
-# Windows
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -direct owner/repo
-```
-
-**With platform-specific installation:**
-```bash
-# macOS / Linux — install for Copilot
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/install | bash -s -- --platform copilot --direct obra/superpowers
-
-# Windows — install for Copilot
-irm https://raw.githubusercontent.com/kolisachint/skills/main/install | iex -platform copilot -direct obra/superpowers
-```
-
-**Or clone locally:**
-```bash
-git clone https://github.com/kolisachint/skills.git && cd skills
-./install caveman                          # from catalog
-./install --direct owner/repo              # from GitHub
-./install --platform pi --direct owner/repo # platform-specific
-./install --category workflow              # install category
-```
+All scripts automatically fall back to `~/github/skills/catalog.tsv` when run outside the repo directory.
 
 ---
 
-### 3. Verify Installation
+## Commands Reference
 
-Check if skills are properly installed:
+### install_skill
 
-**macOS / Linux:**
 ```bash
-# Verify specific skill
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/verify | bash -s -- plannotator
+# From catalog
+install_skill caveman
 
-# Verify with platform details
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/verify | bash -s -- plannotator --platform pi
+# From GitHub directly
+install_skill --direct owner/repo
 
-# Verify all known skills
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/verify | bash -s -- --all
+# Platform-specific
+install_skill --platform copilot --direct obra/superpowers
 
-# Verify CLI tool with details
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/verify | bash -s -- --cli plannotator --verbose
+# Install category
+install_skill --category workflow
+
+# Batch install (comma-separated)
+install_skill --skill superpowers,agent-skills,caveman,grill-me
+
+# From favorites file
+install_skill --from favorites.tsv --tag daily-driver
 ```
 
-**Windows:**
-```powershell
-irm https://raw.githubusercontent.com/kolisachint/skills/main/verify.ps1 | iex -skill plannotator
-```
+### uninstall_skill
 
-**Or clone locally:**
-```bash
-./verify plannotator              # verify specific skill
-./verify plannotator --platform pi # verify with platform
-./verify --all                    # verify all
-./verify --cli plannotator -v     # verbose output
-```
-
----
-
-### 4. Remove Skills
-
-Remove from **both** local project AND global directories:
-
-**macOS / Linux:**
 ```bash
 # Remove single skill
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/remove | bash -s -- caveman
+uninstall_skill caveman
 
 # Remove multiple
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/remove | bash -s -- caveman grill-me
+uninstall_skill caveman grill-me
 
-# Remove ALL skills everywhere
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/remove | bash -s -- --all
+# Remove everything everywhere
+uninstall_skill --all
+
+# Platform-specific removal
+uninstall_skill --platform copilot caveman
 ```
 
-**Windows:**
-```powershell
-# Remove single skill
-irm https://raw.githubusercontent.com/kolisachint/skills/main/remove | iex -skill caveman
-
-# Remove ALL skills everywhere
-irm https://raw.githubusercontent.com/kolisachint/skills/main/remove | iex -all
-```
-
-**Or clone locally:**
-```bash
-./remove caveman              # remove single
-./remove caveman grill-me     # remove multiple
-./remove --all                # remove everything
-./remove --platform copilot caveman  # remove from specific platform
-```
-
-**Output shows all locations:**
+**Sample output:**
 ```
 → caveman
   Local: npx skills remove caveman --yes
@@ -167,210 +101,124 @@ irm https://raw.githubusercontent.com/kolisachint/skills/main/remove | iex -all
 ✓ Removal complete
 ```
 
----
+### list_skill
 
-### 5. Add Skill to Catalog
+```bash
+# Human readable
+list_skill
 
-Add a new skill to `catalog.tsv`:
+# Generate README table
+list_skill --format readme
+```
 
-**macOS / Linux:**
+### verify
+
+```bash
+# Verify specific skill
+verify plannotator
+
+# Verify with platform
+verify plannotator --platform pi
+
+# Verify all known skills
+verify --all
+
+# Verify CLI tool
+verify --cli plannotator --verbose
+```
+
+### add
+
 ```bash
 # Quick add with GitHub repo
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/add | bash -s -- my-skill --github owner/repo --category skill
+add my-skill --github owner/repo --category skill
 
 # With npm package
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/add | bash -s -- my-tool --npm my-package --category tool
+add my-tool --npm my-package --category tool --stars 1K
 
-# Interactive mode (prompts for fields)
-curl -fsSL https://raw.githubusercontent.com/kolisachint/skills/main/add | bash -s -- my-skill
-```
-
-**Windows:**
-```powershell
-# Quick add with GitHub repo
-irm https://raw.githubusercontent.com/kolisachint/skills/main/add | iex -name my-skill -github owner/repo -category skill
-```
-
-**Or clone locally (recommended for editing):**
-```bash
-git clone https://github.com/kolisachint/skills.git && cd skills
-./add my-skill --github owner/repo --category skill
-./add my-tool --npm my-package --category tool --stars 1K
-./add my-skill  # interactive mode
-```
-
----
-
-### 6. Install from Favorites
-
-Use `favorites.tsv` to install a curated subset:
-
-```bash
-# Install all favorites
-./install --from favorites.tsv
-
-# Install only daily-driver tagged favorites
-./install --from favorites.tsv --tag daily-driver
-
-# Combine with other filters
-./install --from favorites.tsv --tag daily-driver,critical
+# Interactive mode
+add my-skill
 ```
 
 ---
 
 ## Curated Components
 
-Current catalog: 6 components across 4 categories.
-
-### ⚡ Workflows
-
-| Name | Platform | Description |
-|------|----------|-------------|
-| **superpowers** | all | Complete TDD and methodology framework *(90K★)* |
-
-### 🧠 Skills
-
-| Name | Platform | Description |
-|------|----------|-------------|
-| **agent-skills** | all | Production engineering from Google's culture *(20K★)* |
-
-### 🎯 Commands
-
-| Name | Platform | Description |
-|------|----------|-------------|
-| **caveman** | all | Ultra-compressed communication *(52K★)* |
-| **grill-me** | all | One-question-at-a-time interrogation *(31K★)* |
-| **plannotator** | all | Visual plan and diff review *(5K★)* |
-
-### 🔧 Tools
-
-| Name | Platform | Description |
-|------|----------|-------------|
-| **codeburn** | all | Interactive TUI for token/cost observability *(4.6K★)* |
+| Category | Skills | Description |
+|----------|--------|-------------|
+| **⚡ Workflows** | superpowers *(90K★)* | Complete TDD and methodology framework |
+| **🧠 Skills** | agent-skills *(20K★)* | Production engineering from Google's culture |
+| **🎯 Commands** | caveman *(52K★)*<br>grill-me *(31K★)*<br>plannotator *(5K★)* | Ultra-compressed communication<br>One-question-at-a-time interrogation<br>Visual plan and diff review |
+| **🔧 Tools** | codeburn *(4.6K★)* | Interactive TUI for token/cost observability |
 
 ---
 
-## Curating Favorites
+## Platform Compatibility
 
-Use `favorites.tsv` to maintain your personal shortlist:
+Commands are automatically transformed for your target platform:
+
+| Platform | Transform | Status |
+|----------|-----------|--------|
+| **OpenCode** | `npx skills add repo` → `npx skills add repo -a opencode -g -y` | ✅ Supported |
+| **Pi** | `npx skills add repo` → `pi install https://github.com/repo` | ✅ Supported |
+| **Claude** | `npx skills add repo` → `npx skills add repo --yes` | ✅ Supported |
+| **Codex** | `npx skills add repo` → `codex skills add <skill-name>` | ✅ Supported |
+| **Copilot** | `npx skills add repo` → `gh copilot -- plugin install repo` | ✅ Requires [gh CLI](https://cli.github.com/) |
+
+---
+
+## Favorites
+
+Create `favorites.tsv` for your personal shortlist:
 
 ```tsv
 name	category	platforms	tags	source
 superpowers	workflow	all	daily-driver	external
 agent-skills	skill	all	daily-driver	external
+caveman	command	all	daily-driver	external
 ```
 
-**Tags:**
-- `daily-driver` — install on every project
-- `occasional` — rare but important
-- `critical` — required for specific project types
+**Tags:** `daily-driver`, `occasional`, `critical`
 
-**Batch install from favorites:**
 ```bash
-./install --target ~/repo --from favorites.tsv --tag daily-driver
+# Install all favorites
+install_skill --from favorites.tsv
+
+# Install only daily-driver tagged
+install_skill --from favorites.tsv --tag daily-driver
 ```
 
 ---
 
-## Installation Dimensions
+## How It Works
 
-Every installation can be filtered across five dimensions:
+This repo is a thin wrapper around `npx skills`:
 
-1. **Category** — `skill`, `prompt`, `command`, `tool`, `agent`, `workflow`
-2. **Platform** — `opencode`, `pi`, `copilot`, `codex`, `claude`
-3. **Agent Target** — `all` or a specific agent/platform name
-4. **Skill** — specific component name(s), comma-separated for multiple
+- `npx skills add <repo>` → installs to `.agents/skills/` + platform symlinks
+- `npm install <pkg>` → installs to `node_modules/`, auto-copied to `.agents/skills/`
 
-Plus two favorites dimensions:
+Everything stays repo-local. Delete the repo = skills are gone.
 
-5. **From** — a `favorites.tsv` file (`--from favorites.tsv`)
-6. **Tag** — filter favorites by tag (`--tag daily-driver,critical`)
-
-### Repo-Local by Default
-
-This skillkit is **repo-local by default**. It only catalogs tools that install
-inside your target directory (e.g. `npx skills add`, `npm install`).
-Global-only tools are excluded.
-
-Use `--platform` to filter the catalog by platform compatibility. The actual
-platform directories (`.pi/`, `.claude/`, etc.) are managed by `npx skills`.
-
-### Platform Compatibility
-
-Commands are automatically transformed for your target platform:
-
-| Platform | Command Transform | Status |
-|----------|------------------|--------|
-| **OpenCode** | `npx skills add repo` → `npx skills add repo -a opencode -g -y` | ✅ Fully supported |
-| **Pi** | `npx skills add repo` → `pi install https://github.com/repo` | ✅ Fully supported |
-| **Claude** | `npx skills add repo` → `npx skills add repo --yes` | ✅ Fully supported |
-| **Codex** | `npx skills add repo` → `codex skills add <skill-name>` | ✅ Supported (transformed) |
-| **Copilot** | `npx skills add repo` → `gh copilot -- plugin install repo` | ✅ Supported (requires [gh CLI](https://cli.github.com/)) |
-
-**Example:**
-```bash
-# Install superpowers workflow for OpenCode
-./install --target ~/repo --platform opencode --skill superpowers
-
-# Install for Pi (transforms to pi install)
-./install --target ~/repo --platform pi --skill superpowers
-
-# Install for Copilot (requires 'gh' CLI with Copilot extension)
-./install --target ~/repo --platform copilot --skill superpowers
-# → Transforms to: gh copilot -- plugin install obra/superpowers
-```
-
----
-
-## What Gets Installed
-
-This repo is a thin wrapper around `npx skills`. Each component's install
-command runs directly in your target directory:
-
-- `npx skills add <repo>` — installs to `.agents/skills/` and creates
-  platform-specific symlinks (`.pi/skills/`, `.claude/skills/`, etc.)
-- `npm install <pkg>` — installs to `node_modules/`; skills are copied to
-  `.agents/skills/` automatically
-
-Everything stays inside your target directory. If you delete the repo, the
-skills are gone. No files are written to `~/.claude`, `~/.config`, or other
-home directory paths.
-
----
-
-## Component Catalog
-
-All components are defined in `catalog.tsv` — a single tab-separated file that
-serves as the source of truth. Each component has:
-
-- **Name** — identifier
-- **Category** — `skill`, `prompt`, `command`, `tool`, `agent`, `workflow`
-- **Source** — `external` (from GitHub or npm)
-- **Platforms** — `all` or comma-separated platform list
-- **Agent Target** — `all` or specific agent/platform name
-- **Description** — what it does
-- **Install command** — how to install external components
-- **Stars** — GitHub star count (for external components)
+**Catalog format:** `catalog.tsv` — single TSV file with name, category, platform, install command, etc.
 
 **Documentation:**
-- [docs/CATALOG_FORMAT.md](docs/CATALOG_FORMAT.md) — Format details and platform transforms
-- [docs/SKILL_SOURCES.md](docs/SKILL_SOURCES.md) — Actual installation commands from READMEs
+- [docs/CATALOG_FORMAT.md](docs/CATALOG_FORMAT.md) — TSV format and transforms
+- [docs/SKILL_SOURCES.md](docs/SKILL_SOURCES.md) — Installation commands from READMEs
 - [docs/REFERENCES.md](docs/REFERENCES.md) — Platform documentation links
 
 ---
 
 ## Philosophy
 
-This is a **curated distribution**, not a collection. See [PHILOSOPHY.md](PHILOSOPHY.md)
-for the complete manifesto on why we made specific choices.
+This is a **curated distribution**, not a collection. See [PHILOSOPHY.md](PHILOSOPHY.md).
 
 Core beliefs:
-1. **Humans remain in control** — AI amplifies judgment, doesn't replace it
-2. **Explicit is better than implicit** — No magic, no hidden behavior
-3. **Context is scarce** — Every component must earn its place
-4. **Vendor agnosticism** — Works across platforms (OpenCode, Pi, Copilot, Codex, Claude)
-5. **Progressive disclosure** — Start simple, add complexity only when needed
-6. **Agent specificity** — Generic defaults with precise overrides for specific agents
+1. **Humans remain in control** — AI amplifies judgment
+2. **Explicit is better than implicit** — No magic
+3. **Context is scarce** — Every component earns its place
+4. **Vendor agnosticism** — Works across all platforms
+5. **Progressive disclosure** — Start simple
+6. **Agent specificity** — Generic defaults, precise overrides
 
 ---
 
@@ -378,22 +226,13 @@ Core beliefs:
 
 | File | Purpose |
 |------|---------|
-| `install` | Install skills (Bash) |
-| `remove` | Remove skills (Bash) |
-| `list` | List installed skills (Bash) |
-| `add` | Add skill to catalog (Bash) |
-| `verify` | Verify skill installations (Bash) |
-| `install.ps1` | Install skills (PowerShell) |
-| `remove.ps1` | Remove skills (PowerShell) |
-| `list.ps1` | List installed skills (PowerShell) |
-| `add.ps1` | Add skill to catalog (PowerShell) |
-| `verify.ps1` | Verify skill installations (PowerShell) |
-| `catalog.tsv` | Single source of truth for all components |
-| `favorites.tsv` | Personal shortlist for batch install |
-| `Makefile` | Quick-install targets (bootstrap-ai, bootstrap-all, list) |
-| `tests/run.sh` | Test suite — validate scripts, catalog, and consistency |
-| `AGENTS.md` | Project-specific agent instructions |
-| `PHILOSOPHY.md` | Curator's manifesto and design principles |
-| `docs/CATALOG_FORMAT.md` | TSV format and platform transform docs |
-| `docs/SKILL_SOURCES.md` | Installation commands from READMEs |
-| `docs/REFERENCES.md` | Platform documentation links |
+| `install_skill` / `install_skill.ps1` | Install skills |
+| `uninstall_skill` / `uninstall_skill.ps1` | Uninstall skills |
+| `list_skill` / `list_skill.ps1` | List installed skills |
+| `add` / `add.ps1` | Add skill to catalog |
+| `verify` / `verify.ps1` | Verify installations |
+| `catalog.tsv` | Single source of truth |
+| `favorites.tsv` | Personal shortlist |
+| `Makefile` | Quick targets |
+| `tests/run.sh` | Test suite |
+| `PHILOSOPHY.md` | Design principles |

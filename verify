@@ -10,6 +10,11 @@ else
 fi
 CATALOG="${SCRIPT_DIR}/catalog.tsv"
 
+# Fallback to ~/github/skills if catalog not found in script directory
+if [[ ! -f "$CATALOG" && -f "$HOME/github/skills/catalog.tsv" ]]; then
+  CATALOG="$HOME/github/skills/catalog.tsv"
+fi
+
 usage() {
   cat <<'EOF'
 Usage: verify [options] [<skill-name>]

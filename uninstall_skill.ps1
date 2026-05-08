@@ -12,7 +12,7 @@ param(
 
 if ($Help) {
     @"
-Usage: remove.ps1 [options] <skill-name> [<skill-name> ...]
+Usage: uninstall_skill.ps1 [options] <skill-name> [<skill-name> ...]
 
 Remove skills from both local project and global directories.
 
@@ -23,21 +23,33 @@ Options:
   -Help                 Show this help
 
 Examples:
-  .\remove.ps1 caveman                    # Remove single skill
-  .\remove.ps1 caveman, grill-me          # Remove multiple
-  .\remove.ps1 -All                       # Remove everything everywhere
-  .\remove.ps1 -Platform copilot caveman  # Remove from Copilot
+  .\uninstall_skill.ps1 caveman                    # Remove single skill
+  .\uninstall_skill.ps1 caveman, grill-me          # Remove multiple
+  .\uninstall_skill.ps1 -All                       # Remove everything everywhere
+  .\uninstall_skill.ps1 -Platform copilot caveman  # Remove from Copilot
 
   # Via Invoke-Expression:
-  irm https://raw.githubusercontent.com/kolisachint/skills/main/remove.ps1 | iex -skill caveman
+  irm https://raw.githubusercontent.com/kolisachint/skills/main/uninstall_skill.ps1 | iex -skill caveman
 "@
     exit 0
 }
 
 $ErrorActionPreference = "Stop"
-$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+
+# Handle script path when run via irm | iex (no file path)
+$ScriptDir = if ($MyInvocation.MyCommand.Path) { 
+    Split-Path -Parent $MyInvocation.MyCommand.Path 
+} else { 
+    $PSScriptRoot 
+}
 if (-not $ScriptDir) { $ScriptDir = "." }
 $Catalog = Join-Path $ScriptDir "catalog.tsv"
+
+# Fallback to ~/github/skills if catalog not found in script directory
+$githubSkillsPath = Join-Path $env:USERPROFILE "github/skills/catalog.tsv"
+if (-not (Test-Path $Catalog) -and (Test-Path $githubSkillsPath)) {
+    $Catalog = $githubSkillsPath
+}
 
 # Global skill directories
 $GlobalSkillDirs = @(
@@ -127,7 +139,7 @@ if ($All) {
 
 # Check for skills
 if ($Skills.Count -eq 0) {
-    Write-Error "remove requires a SKILL name (or -All)"
+    Write-Error "uninstall_skill requires a SKILL name (or -All)"
     exit 1
 }
 
@@ -140,6 +152,18 @@ foreach ($skill in $Skills) {
     # Determine remove command
     $removeCmd = $null
     
+    # Try to download catalog if not found locally (for irm | iex execution)
+    if (-not (Test-Path $Catalog)) {
+        $catalogUrl = "https://raw.githubusercontent.com/kolisachint/skills/main/catalog.tsv"
+        $tempCatalog = Join-Path $env:TEMP "skills_catalog.tsv"
+        try {
+            Invoke-WebRequest -Uri $catalogUrl -OutFile $tempCatalog -UseBasicParsing
+            $Catalog = $tempCatalog
+        } catch {
+            # Catalog not available, use default removal
+        }
+    }
+
     # Look up in catalog
     if (Test-Path $Catalog) {
         $catalogContent = Get-Content $Catalog
@@ -173,6 +197,9 @@ foreach ($skill in $Skills) {
         }
     } elseif ($Platform -eq "pi" -and $skill -eq "plannotator") {
         $removeCmd = "pi remove npm:@plannotator/pi-extension"
+    } elseif ($skill -eq "plannotator" -and $removeCmd -eq "plannotator-binary") {
+        # Remove plannotator binary installed via PowerShell script
+        $removeCmd = "Remove-Item -Force `$env:LOCALAPPDATA\plannotator\plannotator.exe -ErrorAction SilentlyContinue"
     }
     
     # Fallback

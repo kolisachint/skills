@@ -1,6 +1,9 @@
 #!/usr/bin/env pwsh
 # List user-installed skills across all agent platforms
 
+#!/usr/bin/env pwsh
+# List user-installed skills across all agent platforms
+
 param(
     [string]$Format = "default",
     [switch]$Help = $false
@@ -8,7 +11,7 @@ param(
 
 if ($Help) {
     @"
-Usage: list.ps1 [options]
+Usage: list_skill.ps1 [options]
 
 List all user-installed skills (hides system packages).
 
@@ -17,11 +20,11 @@ Options:
   -Help             Show this help
 
 Examples:
-  .\list.ps1                           # Human readable output
-  .\list.ps1 -Format readme            # Markdown table for README
+  .\list_skill.ps1                           # Human readable output
+  .\list_skill.ps1 -Format readme            # Markdown table for README
 
   # Via Invoke-Expression:
-  irm https://raw.githubusercontent.com/kolisachint/skills/main/list.ps1 | iex
+  irm https://raw.githubusercontent.com/kolisachint/skills/main/list_skill.ps1 | iex
 "@
     exit 0
 }
